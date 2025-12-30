@@ -1,0 +1,95 @@
+[30-Dec-2025 14:21:04 Asia/Jakarta] PHP Warning:  Undefined variable $status in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 67
+[30-Dec-2025 14:21:04 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:86
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 86
+[30-Dec-2025 14:21:46 Asia/Jakarta] PHP Warning:  Undefined variable $status in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 67
+[30-Dec-2025 14:21:46 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:86
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 86
+[30-Dec-2025 14:29:40 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:355
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 355
+[30-Dec-2025 14:29:53 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:355
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 355
+[30-Dec-2025 14:32:07 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:355
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 355
+[30-Dec-2025 14:32:22 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:355
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 355
+[30-Dec-2025 14:32:26 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:355
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 355
+[30-Dec-2025 14:33:02 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:363
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 363
+[30-Dec-2025 14:33:52 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:356
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 356
+[30-Dec-2025 14:36:54 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:361
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 361
+[30-Dec-2025 14:37:50 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:359
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 359
+[30-Dec-2025 14:38:02 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:359
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 359
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Undefined array key "user_id" in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 19
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Trying to access array offset on null in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 90
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Trying to access array offset on null in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 91
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Trying to access array offset on null in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 92
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Trying to access array offset on null in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 93
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Trying to access array offset on null in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 94
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Trying to access array offset on null in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 95
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Trying to access array offset on null in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 96
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Trying to access array offset on null in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 97
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Trying to access array offset on null in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 98
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Trying to access array offset on null in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 99
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Trying to access array offset on null in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 100
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Warning:  Trying to access array offset on null in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 101
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u363164888/domains/ryzola.com/public_html/trivanox/topbar.php on line 50
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u363164888/domains/ryzola.com/public_html/trivanox/topbar.php on line 56
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u363164888/domains/ryzola.com/public_html/trivanox/topbar.php on line 58
+[30-Dec-2025 14:38:12 Asia/Jakarta] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in /home/u363164888/domains/ryzola.com/public_html/trivanox/topbar.php on line 59
+[30-Dec-2025 14:38:20 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:359
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 359
+[30-Dec-2025 14:39:05 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:362
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 362
+[30-Dec-2025 14:39:55 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:362
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 362
+[30-Dec-2025 14:45:15 Asia/Jakarta] PHP Fatal error:  Uncaught Error: Call to undefined function old() in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php:362
+Stack trace:
+#0 {main}
+  thrown in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 362
+[30-Dec-2025 14:47:27 Asia/Jakarta] PHP Warning:  Undefined array key "user_id" in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 19
+[30-Dec-2025 14:50:50 Asia/Jakarta] PHP Warning:  Undefined array key "SMTP_HOST" in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 243
+[30-Dec-2025 14:50:50 Asia/Jakarta] PHP Warning:  Undefined array key "SMTP_USER" in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 245
+[30-Dec-2025 14:50:50 Asia/Jakarta] PHP Warning:  Undefined array key "SMTP_PASS" in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 246
+[30-Dec-2025 14:50:50 Asia/Jakarta] PHP Warning:  Undefined array key "SMTP_USER" in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 250
+[30-Dec-2025 14:50:50 Asia/Jakarta] Email gagal: Invalid address:  (From): 
+[30-Dec-2025 15:10:03 Asia/Jakarta] PHP Warning:  Undefined array key "SMTP_HOST" in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 243
+[30-Dec-2025 15:10:03 Asia/Jakarta] PHP Warning:  Undefined array key "SMTP_USER" in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 245
+[30-Dec-2025 15:10:03 Asia/Jakarta] PHP Warning:  Undefined array key "SMTP_PASS" in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 246
+[30-Dec-2025 15:10:03 Asia/Jakarta] PHP Warning:  Undefined array key "SMTP_USER" in /home/u363164888/domains/ryzola.com/public_html/trivanox/comp-register.php on line 250
+[30-Dec-2025 15:10:03 Asia/Jakarta] Email gagal: Invalid address:  (From): 
+[30-Dec-2025 16:38:30 Asia/Jakarta] PHP Warning:  Undefined array key "user_id" in /home/u363164888/domains/ryzola.com/public_html/trivanox/karyawan.php on line 19
