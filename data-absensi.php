@@ -2,18 +2,36 @@
 include 'error_handler.php';
 session_start();
 include "koneksi.php";
+include 'encryption.php';
 date_default_timezone_set("Asia/Jakarta");  // Set zona waktu ke Jakarta
+// Kunci rahasia
+$key = 'AhmadZaelani23552011179';
+// Inisialisasi kelas
+$encryption = new Encryption($key);
 
 // Mengambil tema yang disimpan (jika ada)
 // Ambil tema yang disimpan di session
 $savedTheme = isset($_SESSION['selectedTheme']) ? $_SESSION['selectedTheme'] : 'bg-theme bg-theme1'; // Default tema jika tidak ada
 
+$id_user = $_SESSION["user_id"] ?? ''; 
+/* ---------------------------------------------------
+   FLASH MESSAGE
+--------------------------------------------------- */
+$status = $_SESSION['status'] ?? '';
+$message = $_SESSION['message'] ?? '';
+unset($_SESSION['status'], $_SESSION['message']);
+
+/* ---------------------------------------------------
+   CSRF TOKEN
+--------------------------------------------------- */
+if (empty($_SESSION['csrf_token'])) {
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf = $_SESSION['csrf_token'];
 // ==============================
 // CEK LOGIN
 // ==============================
-$user_id = $_SESSION["user_id"]; 
 if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
-
     $token = $_COOKIE["remember"];
 
     $stmt = $conn->prepare("
@@ -42,6 +60,7 @@ if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
         ];
     }
 
+    $id_user = $_SESSION["user_id"]; 
     $stmt->close();
 } else if (!isset($_SESSION["user_id"]) && !isset($_COOKIE["remember"])) {
     $_SESSION["status"] = "error";
@@ -50,53 +69,121 @@ if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
     exit;
 }
 
-
-$stmt = $conn->prepare("
-  SELECT 
-      u.id,
-      u.id_company,
-      u.name,
-      u.email,
-      u.password,
-      u.role,
-      u.jabatan,
-      u.foto_profile,
-      u.remember_token,
-      u.created_at AS user_created_at,
-      c.nama_company,
-      c.code_company,
-      c.code_verification,
-      c.alamat_company,
-      c.status_company,
-      c.expired_at,
-      c.created_at AS company_created_at
+$stmt = $conn->prepare("SELECT  u.id, u.id_company, u.name, u.email,
+      u.password, u.role, u.jabatan, u.foto_profile, u.remember_token,
+      u.created_at AS user_created_at, c.nama_company, c.code_company,
+      c.code_verification, c.alamat_company, c.status_company, c.expired_at, c.created_at AS company_created_at
   FROM users u
   LEFT JOIN company c ON u.id_company = c.id_company
   WHERE u.id = ?
   LIMIT 1
 ");
-$stmt->bind_param("i", $user_id);
+
+$stmt->bind_param("i", $id_user);
 $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 $stmt->close();
+/* ===============================
+   CEK APAKAH USER DITEMUKAN
+================================ */
+if (!$user) {
+    // opsi 1: paksa logout
+    session_destroy();
+    $_SESSION["status"] = "error";
+    $_SESSION["message"] = "Silakan login terlebih dahulu.";
+    header("Location: login");
+    exit;
 
+    // atau opsi 2: tampilkan pesan
+    // die("User tidak ditemukan");
+}
+
+/* ===============================
+   SET SESSION JIKA DATA ADA
+================================ */
 $_SESSION["user"] = [
-  "id"              => $user["id"],
-  "id_company"      => $user["id_company"],
-  "name"            => $user["name"],
-  "email"           => $user["email"],
-  "role"            => $user["role"],
-  "jabatan"         => $user["jabatan"],
-  "foto_profile"    => $user["foto_profile"],
-  "company_name"    => $user["nama_company"],
-  "company_code"    => $user["code_company"],
-  "status_company"  => $user["status_company"],
-  "expired_at"      => $user["expired_at"],
-  "company_address" => $user["alamat_company"]
+    "id"              => $user["id"],
+    "id_company"      => $user["id_company"],
+    "name"            => $user["name"],
+    "email"           => $user["email"],
+    "role"            => $user["role"],
+    "jabatan"         => $user["jabatan"],
+    "foto_profile"    => $user["foto_profile"],
+    "company_name"    => $user["nama_company"] ?? null,
+    "company_code"    => $user["code_company"] ?? null,
+    "status_company"  => $user["status_company"] ?? null,
+    "expired_at"      => $user["expired_at"] ?? null,
+    "company_address" => $user["alamat_company"] ?? null
 ];
 
 $sesi_user = $_SESSION["user"];
+$nama_karyawan = $sesi_user['name'];
+// Mendapatkan waktu saat ini
+$jam = date("H");  // Jam dalam format 24 jam
+$hari = date("l");  // Nama hari dalam bahasa Inggris
+$tanggal = date("d F Y");  // Tanggal dalam format dd F yyyy
+$waktu_salam = "";
+$datenow = date("Y-m-d");
+
+// Mengubah nama hari ke bahasa Indonesia
+$hari_indonesia = [
+  "Sunday" => "Minggu",
+  "Monday" => "Senin",
+  "Tuesday" => "Selasa",
+  "Wednesday" => "Rabu",
+  "Thursday" => "Kamis",
+  "Friday" => "Jumat",
+  "Saturday" => "Sabtu"
+];
+// Mengubah nama bulan ke bahasa Indonesia
+$bulan_indonesia = [
+  "January" => "Januari",
+  "February" => "Februari",
+  "March" => "Maret",
+  "April" => "April",
+  "May" => "Mei",
+  "June" => "Juni",
+  "July" => "Juli",
+  "August" => "Agustus",
+  "September" => "September",
+  "October" => "Oktober",
+  "November" => "November",
+  "December" => "Desember"
+];
+// Ubah nama hari dan bulan ke bahasa Indonesia
+$hari = $hari_indonesia[$hari];
+$bulan = $bulan_indonesia[date("F")];
+$tanggal = date("d") . " " . $bulan . " " . date("Y");
+
+$nama_bulan = date('m');
+$nama_tahun = date('Y');
+$jumlahHari = cal_days_in_month(CAL_GREGORIAN, $nama_bulan, $nama_tahun);
+$query = mysqli_query($conn, " SELECT *
+    FROM absensi WHERE id_user = $id_user
+    AND MONTH(tanggal) = $nama_bulan
+    AND YEAR(tanggal) = $nama_tahun
+");
+
+$dataAbsensi = [];
+while ($row = mysqli_fetch_assoc($query)) {
+    $dataAbsensi[$row['tanggal']] = $row;
+}
+
+function hitungLembur($jamPulang) {
+    if ($jamPulang == '-' || empty($jamPulang)) return '-';
+
+    $jamNormal = strtotime("17:00:00");
+    $jamPulangTime = strtotime($jamPulang);
+
+    if ($jamPulangTime <= $jamNormal) {
+        return '0 jam';
+    }
+
+    $selisih = ($jamPulangTime - $jamNormal) / 3600;
+    return number_format($selisih, 1) . ' jam';
+}
+
 
 ?>
 <!DOCTYPE html>
@@ -107,7 +194,7 @@ $sesi_user = $_SESSION["user"];
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
   <meta name="description" content="Trivanox - HR Management" />
   <meta name="author" content="Ahmad Zaelani" />
-  <title>Data Karyawan - HR Management</title>
+  <title>Data Absensi Karyawan - HR Management</title>
   <link rel="icon" href="assets/images/logo-trivanox.png" type="image/x-icon">
   <!-- loader-->
   <link href="assets/css/pace.min.css" rel="stylesheet"/>
@@ -124,7 +211,23 @@ $sesi_user = $_SESSION["user"];
   <link href="assets/css/sidebar-menu.css" rel="stylesheet"/>
   <!-- Custom Style-->
   <link href="assets/css/app-style.css" rel="stylesheet"/>
-  
+  <style>
+    .dataTables_filter {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px;
+    }
+    .dataTables_filter label {
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px;
+      margin-bottom: 0 !important;
+    }
+    .dataTables_filter input {
+      margin-left: 0 !important;
+    }
+    </style>
+
 </head>
 
 <body class="<?= $savedTheme ?>">
@@ -143,76 +246,65 @@ $sesi_user = $_SESSION["user"];
 	
   <div class="content-wrapper">
     <div class="container-fluid">
-	  
-<!-- Page Heading -->
-<h3 class="h3 mb-2 text-gray-800">Data Karyawan</h3>
-<p class="h4 mb-4"><?= $_SESSION["user"]["company_name"] ?></p>
+    	  
+    <!-- Page Heading -->
+    <h4 class="h4 mb-2 text-gray-800">Data Absensi Karyawan</h4>
+    <p class="h5"><?= $_SESSION["user"]["company_name"] ?></p>
 
-<!-- DataTales Example -->
+        <?php if ($status): ?>
+        <div id="messages">
+            <div class="alert alert-<?= $status === 'success' ? 'success' : 'danger' ?> mt-3">
+                <div class="text-center p-1">
+                    <strong><?= htmlspecialchars($message) ?></strong>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+        
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h4 class="m-0 font-weight-bold">Data Karyawan</h4>
-        
-            <a href="tambah-karyawan" class="btn btn-sm btn-light"><i class="zmdi zmdi-plus"></i> <span>Tambah Karyawan</span></a>
+        <h5 class="m-0 font-weight-bold">Data Absensi <?= $nama_karyawan ?></h5>
 
     </div>
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                <thead>
-                    <tr>
-                      <th scope="col">#</th>
-                      <th scope="col">Heading</th>
-                      <th scope="col">Heading</th>
-                      <th scope="col">Heading</th>
-                      <th scope="col">Heading</th>
-                      <th scope="col">Heading</th>
-                      <th scope="col">Heading</th>
-                      <th scope="col">Heading</th>
-                      <th scope="col">Heading</th>
-                      <th scope="col">Heading</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <th scope="row">1</th>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                    </tr>
-                    <tr>
-                      <th scope="row">2</th>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                    </tr>
-                    <tr>
-                      <th scope="row">3</th>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                      <td>Cell</td>
-                    </tr>
-                  </tbody>
-            </table>
-        </div>
+        <table border="1" cellpadding="8" cellspacing="0">
+    <tr>
+        <th>Tanggal</th>
+        <?php for ($i = 1; $i <= $jumlahHari; $i++): ?>
+            <th><?= $i ?></th>
+        <?php endfor; ?>
+    </tr>
+
+    <?php
+    $rows = [
+        'Jam Masuk' => 'jam_masuk',
+        'Mulai Istirahat' => 'jam_mulai_istirahat',
+        'Selesai Istirahat' => 'jam_selesai_istirahat',
+        'Jam Pulang' => 'jam_pulang'
+    ];
+    ?>
+
+    <?php foreach ($rows as $label => $field): ?>
+        <tr>
+            <td><?= $label ?></td>
+            <?php for ($i = 1; $i <= $jumlahHari; $i++):
+                $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                echo "<td>" . ($dataAbsensi[$nama_tanggal][$field] ?? '-') . "</td>";
+            endfor; ?>
+        </tr>
+    <?php endforeach; ?>
+
+    <!-- Baris Lembur -->
+    <tr>
+        <td>Lembur</td>
+        <?php for ($i = 1; $i <= $jumlahHari; $i++):
+            $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+            $jamPulang = $dataAbsensi[$nama_tanggal]['jam_pulang'] ?? '-';
+            echo "<td>" . hitungLembur($jamPulang) . "</td>";
+        endfor; ?>
+    </tr>
+</table>
+
     </div>
 </div>
 	  <!--start overlay-->
@@ -356,7 +448,18 @@ $sesi_user = $_SESSION["user"];
     <script src="assets/plugins/datatables/dataTables.bootstrap4.min.js"></script>
 
     <!-- Page level custom scripts -->
-    <script src="js/demo/datatables-demo.js"></script>
+    <!-- <script src="js/demo/datatables-demo.js"></script> -->
+    <script>
+    $(document).ready(function() {
+      $('#dataTable').DataTable({
+        language: {
+          url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json"
+        },
+        pageLength: 10
+      });
+    });
+    </script>
+
 	
 </body>
 </html>
