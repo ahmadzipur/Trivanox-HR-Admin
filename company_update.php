@@ -15,12 +15,12 @@ unset($_SESSION['status'], $_SESSION['message']);
 // Simpan form lama di session supaya tidak hilang
 function old($key)
 {
-  return $_SESSION['old'][$key] ?? '';
+    return $_SESSION['old'][$key] ?? '';
 }
 
 // Generate CSRF Token
 if (empty($_SESSION['csrf'])) {
-  $_SESSION['csrf'] = bin2hex(random_bytes(32));
+    $_SESSION['csrf'] = bin2hex(random_bytes(32));
 }
 
 // ==============================
@@ -28,7 +28,7 @@ if (empty($_SESSION['csrf'])) {
 // ==============================
 
 $_SESSION['old'] = $_POST;
-    
+
 if (!isset($_SESSION['user']['company_code'])) {
     $_SESSION['status'] = 'error';
     $_SESSION['message'] = 'Akses tidak valid';
@@ -68,7 +68,7 @@ $stmt = $conn->prepare("
 
 if (!$stmt) {
     $_SESSION['status'] = 'error';
-    $_SESSION['message'] = 'PREPARE ERROR: '. $conn->error;
+    $_SESSION['message'] = 'PREPARE ERROR: ' . $conn->error;
     header("Location: company");
     exit;
 }
@@ -91,57 +91,59 @@ $company_logo = $oldCompany['company_logo'];
 // ==============================
 // Upload Logo (jika ada)
 // ==============================
-    if (!empty($_FILES['company_logo']['name'])) {
-        $allowed = ['jpg','jpeg','png','webp'];
-        $ext = strtolower(pathinfo($_FILES['company_logo']['name'], PATHINFO_EXTENSION));
+if (!empty($_FILES['company_logo']['name'])) {
+    $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+    $ext = strtolower(pathinfo($_FILES['company_logo']['name'], PATHINFO_EXTENSION));
 
-        if (!in_array($ext, $allowed)) {
-            $_SESSION['status'] = 'error';
-            $_SESSION['message'] = 'Format logo tidak diizinkan';
-            header("Location: company");
-            exit;
-        }
+    if (!in_array($ext, $allowed)) {
+        $_SESSION['status'] = 'error';
+        $_SESSION['message'] = 'Format logo tidak diizinkan';
+        header("Location: company");
+        exit;
+    }
 
-        if ($_FILES['company_logo']['size'] > 2 * 1024 * 1024) {
-            $_SESSION['status'] = 'error';
-            $_SESSION['message'] = 'Ukuran logo maksimal 2MB';
-            header("Location: company");
-            exit;
-        }
-        
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mime  = finfo_file($finfo, $_FILES['company_logo']['tmp_name']);
-        finfo_close($finfo);
-        
-        $allowedMime = ['image/jpeg','image/png','image/webp'];
-        
-        if (!in_array($mime, $allowedMime)) {
-            $_SESSION['status'] = 'error';
-            $_SESSION['message'] = 'File bukan gambar valid';
-            header("Location: company");
-            exit;
-        }
+    if ($_FILES['company_logo']['size'] > 2 * 1024 * 1024) {
+        $_SESSION['status'] = 'error';
+        $_SESSION['message'] = 'Ukuran logo maksimal 2MB';
+        header("Location: company");
+        exit;
+    }
 
-        $uploadDir = 'uploads/company_logo/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime  = finfo_file($finfo, $_FILES['company_logo']['tmp_name']);
+    finfo_close($finfo);
 
-        $filename = 'logo_company_' . time() . '.' . $ext;
-        $filepath = $uploadDir . $filename;
-        $old_logo = $company_logo; // simpan logo lama
-        if (move_uploaded_file($_FILES['company_logo']['tmp_name'], $filepath)) {
-            $company_logo = $filepath;
-        
-            // hapus logo lama (kecuali default)
-            if ($old_logo 
-                && file_exists($old_logo) 
-                && $old_logo !== 'uploads/company_logo/default.png') {
-                unlink($old_logo);
-            }
+    $allowedMime = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (!in_array($mime, $allowedMime)) {
+        $_SESSION['status'] = 'error';
+        $_SESSION['message'] = 'File bukan gambar valid';
+        header("Location: company");
+        exit;
+    }
+
+    $uploadDir = 'uploads/company_logo/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+
+    $filename = 'logo_company_' . time() . '.' . $ext;
+    $filepath = $uploadDir . $filename;
+    $old_logo = $company_logo; // simpan logo lama
+    if (move_uploaded_file($_FILES['company_logo']['tmp_name'], $filepath)) {
+        $company_logo = $filepath;
+
+        // hapus logo lama (kecuali default)
+        if (
+            $old_logo
+            && file_exists($old_logo)
+            && $old_logo !== 'uploads/company_logo/default.png'
+        ) {
+            unlink($old_logo);
         }
     }
-    
+}
+
 //    if ($_FILES['company_logo']['error'] !== UPLOAD_ERR_OK) {
 //        $_SESSION['status'] = 'error';
 //        $_SESSION['message'] = 'Gagal upload logo perusahaan';

@@ -170,7 +170,37 @@ while ($row = mysqli_fetch_assoc($query)) {
     $dataAbsensi[$row['tanggal']] = $row;
 }
 
-function hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamPulang) {
+// Data Bulan Sebelumnya
+// Ambil bulan & tahun sebelumnya
+$prevMonth = date('m', strtotime('first day of last month'));
+$prevYear  = date('Y', strtotime('first day of last month'));
+
+$nama_bulan_sebelumnya = $prevMonth;
+$bulan_sebelumnya = $bulan_indonesia[date('F', strtotime('first day of last month'))];
+
+$nama_tahun_sebelumnya = $prevYear;
+
+// Jumlah hari di bulan sebelumnya
+$jumlahHari_bulan_sebelumnya = cal_days_in_month(CAL_GREGORIAN, $nama_bulan_sebelumnya, $nama_tahun_sebelumnya);
+
+// Query absensi bulan sebelumnya
+$query_bulan_sebelumnya = mysqli_query($conn, "
+    SELECT *
+    FROM absensi
+    WHERE id_user = $id_user
+    AND MONTH(tanggal) = $nama_bulan_sebelumnya
+    AND YEAR(tanggal) = $nama_tahun_sebelumnya
+");
+
+// Susun data absensi per tanggal
+$dataAbsensi_bulan_sebelumnya = [];
+while ($row_bulan_sebelumnya = mysqli_fetch_assoc($query_bulan_sebelumnya)) {
+    $dataAbsensi_bulan_sebelumnya[$row_bulan_sebelumnya['tanggal']] = $row_bulan_sebelumnya;
+}
+// Akhir Data Sebelumnya
+
+function hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamPulang)
+{
     if (
         $jamMasuk == '-' || empty($jamMasuk) ||
         $jamMulaiIstirahat == '-' || empty($jamMulaiIstirahat) ||
@@ -198,6 +228,40 @@ function hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamP
 
     $lembur = $totalJamKerja - $jamKerjaNormal;
     return number_format($lembur, 1) . ' jam';
+}
+
+function cekJamMasuk($jamMasuk)
+{
+    if ($jamMasuk === '-' || empty($jamMasuk)) {
+        return '-';
+    }
+
+    // Pakai tanggal dummy agar konsisten
+    $jamMasukTime       = strtotime("1970-01-01 $jamMasuk");
+    $jamMasukNormalTime = strtotime("1970-01-01 09:00:00");
+
+    if ($jamMasukTime > $jamMasukNormalTime) {
+        return '<span class="btn btn-lg btn-danger py-0 px-1">' . htmlspecialchars($jamMasuk) . '</span>';
+    }
+
+    return $jamMasuk;
+}
+
+function cekJamPulang($jamPulang)
+{
+    if ($jamPulang === '-' || empty($jamPulang)) {
+        return '-';
+    }
+
+    // Pakai tanggal dummy agar konsisten
+    $jamPulangTime       = strtotime("1970-01-01 $jamPulang");
+    $jamPulangNormalTime = strtotime("1970-01-01 17:00:00");
+
+    if ($jamPulangTime < $jamPulangNormalTime) {
+        return '<span class="btn btn-lg btn-danger py-0 px-1">' . htmlspecialchars($jamPulang) . '</span>';
+    }
+
+    return $jamPulang;
 }
 
 
@@ -288,52 +352,127 @@ function hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamP
                 <?php endif; ?>
 
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <!-- <div class="card-header py-3 d-flex justify-content-between align-items-center">
                         <h5 class="m-0 font-weight-bold">Data Absensi <?= $nama_karyawan ?></h5>
-
+                    </div> -->
+                    <div class="card-header mt-2 py-0">
+                        <h5 class="m-0 font-weight-bold">Data Absensi <?= $nama_karyawan ?></h5>
+                        <h5 class="mt-1 font-weight-bold">Bulan: <?= $bulan ?> <?= $nama_tahun ?></h5>
                     </div>
-                    <div class="card-body">
-                        <table border="1" cellpadding="8" cellspacing="0">
-                            <tr>
-                                <th>Tanggal</th>
-                                <?php for ($i = 1; $i <= $jumlahHari; $i++): ?>
-                                    <th><?= $i ?></th>
-                                <?php endfor; ?>
-                            </tr>
-
-                            <?php
-                            $rows = [
-                                'Jam Masuk' => 'jam_masuk',
-                                'Mulai Istirahat' => 'jam_mulai_istirahat',
-                                'Selesai Istirahat' => 'jam_selesai_istirahat',
-                                'Jam Pulang' => 'jam_pulang'
-                            ];
-                            ?>
-
-                            <?php foreach ($rows as $label => $field): ?>
+                    <div class="card-body btn-white">
+                        <div class="table-responsive">
+                            <table border="1" cellpadding="8" cellspacing="0">
                                 <tr>
-                                    <td><?= $label ?></td>
+                                    <th>Tanggal</th>
+                                    <?php for ($i = 1; $i <= $jumlahHari; $i++): ?>
+                                        <th><?= $i ?></th>
+                                    <?php endfor; ?>
+                                </tr>
+
+                                <?php
+                                $rows = [
+                                    'Jam Masuk' => 'jam_masuk',
+                                    'Mulai Istirahat' => 'jam_mulai_istirahat',
+                                    'Selesai Istirahat' => 'jam_selesai_istirahat',
+                                    'Jam Pulang' => 'jam_pulang'
+                                ];
+                                ?>
+
+                                <?php foreach ($rows as $label => $field): ?>
+                                    <tr>
+                                        <td><?= $label ?></td>
+                                        <?php for ($i = 1; $i <= $jumlahHari; $i++):
+                                            $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                                            $value = $dataAbsensi[$nama_tanggal][$field] ?? '-';
+
+                                            // Terapkan cekJamMasuk hanya untuk Jam Masuk
+                                            if ($field === 'jam_masuk') {
+                                                echo "<td>" . cekJamMasuk($value) . "</td>";
+                                            } else if ($field === 'jam_pulang') {
+                                                echo "<td>" . cekJamPulang($value) . "</td>";
+                                            } else {
+                                                echo "<td>" . htmlspecialchars($value) . "</td>";
+                                            }
+                                        endfor; ?>
+                                    </tr>
+                                <?php endforeach; ?>
+
+                                <!-- Baris Lembur -->
+                                <tr>
+                                    <td>Lembur</td>
                                     <?php for ($i = 1; $i <= $jumlahHari; $i++):
                                         $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
-                                        echo "<td>" . ($dataAbsensi[$nama_tanggal][$field] ?? '-') . "</td>";
+                                        $jamMasuk = $dataAbsensi[$nama_tanggal]['jam_masuk'] ?? '-';
+                                        $jamMulaiIstirahat = $dataAbsensi[$nama_tanggal]['jam_mulai_istirahat'] ?? '-';
+                                        $jamSelesaiIstirahat = $dataAbsensi[$nama_tanggal]['jam_selesai_istirahat'] ?? '-';
+                                        $jamPulang = $dataAbsensi[$nama_tanggal]['jam_pulang'] ?? '-';
+                                        echo "<td>" . hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamPulang) . "</td>";
                                     endfor; ?>
                                 </tr>
-                            <?php endforeach; ?>
+                            </table>
 
-                            <!-- Baris Lembur -->
-                            <tr>
-                                <td>Lembur</td>
-                                <?php for ($i = 1; $i <= $jumlahHari; $i++):
-                                    $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
-                                    $jamMasuk = $dataAbsensi[$nama_tanggal]['jam_masuk'] ?? '-';
-                                    $jamMulaiIstirahat = $dataAbsensi[$nama_tanggal]['jam_mulai_istirahat'] ?? '-';
-                                    $jamSelesaiIstirahat = $dataAbsensi[$nama_tanggal]['jam_selesai_istirahat'] ?? '-';
-                                    $jamPulang = $dataAbsensi[$nama_tanggal]['jam_pulang'] ?? '-';
-                                    echo "<td>" . hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamPulang) . "</td>";
-                                endfor; ?>
-                            </tr>
-                        </table>
 
+                        </div>
+                    </div>
+
+                    <div class="card-header mt-2 py-0">
+                        <h5 class="m-0 font-weight-bold">Data Absensi <?= $nama_karyawan ?></h5>
+                        <h5 class="mt-1 font-weight-bold">Bulan: <?= $bulan_sebelumnya ?> <?= $nama_tahun_sebelumnya ?></h5>
+                    </div>
+                    <div class="card-body btn-white">
+                        <div class="table-responsive">
+                            <table border="1" cellpadding="8" cellspacing="0">
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <?php for ($i = 1; $i <= $jumlahHari_bulan_sebelumnya; $i++): ?>
+                                        <th><?= $i ?></th>
+                                    <?php endfor; ?>
+                                </tr>
+
+                                <?php
+                                $rows = [
+                                    'Jam Masuk' => 'jam_masuk',
+                                    'Mulai Istirahat' => 'jam_mulai_istirahat',
+                                    'Selesai Istirahat' => 'jam_selesai_istirahat',
+                                    'Jam Pulang' => 'jam_pulang'
+                                ];
+                                ?>
+
+                                <?php foreach ($rows as $label => $field): ?>
+                                    <tr>
+                                        <td><?= $label ?></td>
+                                        <?php for ($i = 1; $i <= $jumlahHari_bulan_sebelumnya; $i++):
+                                            $nama_tanggal_bulan_sebelumnya = "$nama_tahun_sebelumnya-$nama_bulan_sebelumnya-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                                            $value = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya][$field] ?? '-';
+
+                                            // Terapkan cekJamMasuk hanya untuk Jam Masuk
+                                            if ($field === 'jam_masuk') {
+                                                echo "<td>" . cekJamMasuk($value) . "</td>";
+                                            } else if ($field === 'jam_pulang') {
+                                                echo "<td>" . cekJamPulang($value) . "</td>";
+                                            } else {
+                                                echo "<td>" . htmlspecialchars($value) . "</td>";
+                                            }
+                                        endfor; ?>
+                                    </tr>
+                                <?php endforeach; ?>
+
+                                <!-- Baris Lembur -->
+                                <tr>
+                                    <td>Lembur</td>
+                                    <?php for ($i = 1; $i <= $jumlahHari_bulan_sebelumnya; $i++):
+                                        $nama_tanggal_bulan_sebelumnya = "$nama_tahun_sebelumnya-$nama_bulan_sebelumnya-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                                        $jamMasuk = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya]['jam_masuk'] ?? '-';
+                                        $jamMulaiIstirahat = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya]['jam_mulai_istirahat'] ?? '-';
+                                        $jamSelesaiIstirahat = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya]['jam_selesai_istirahat'] ?? '-';
+                                        $jamPulang = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya]['jam_pulang'] ?? '-';
+                                        echo "<td>" . hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamPulang) . "</td>";
+                                    endfor; ?>
+                                </tr>
+                            </table>
+
+
+                        </div>
                     </div>
                 </div>
                 <!--start overlay-->

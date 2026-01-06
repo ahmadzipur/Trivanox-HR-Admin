@@ -13,7 +13,6 @@ $encryption = new Encryption($key);
 // Ambil tema yang disimpan di session
 $savedTheme = isset($_SESSION['selectedTheme']) ? $_SESSION['selectedTheme'] : 'bg-theme bg-theme1'; // Default tema jika tidak ada
 
-$id_user = $_SESSION["user_id"] ?? '';
 /* ---------------------------------------------------
    FLASH MESSAGE
 --------------------------------------------------- */
@@ -31,9 +30,36 @@ $csrf = $_SESSION['csrf_token'];
 // ==============================
 // CEK LOGIN
 // ==============================
-if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
-    $token = $_COOKIE["remember"];
+if (isset($_SESSION["user_id"])) {
+    $stmt = $conn->prepare("
+      SELECT u.*, c.nama_company 
+      FROM users u
+      LEFT JOIN company c ON u.id_company = c.id_company
+      WHERE u.id = ?
+      LIMIT 1
+    ");
+    $stmt->bind_param("s", $_SESSION["user_id"]);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
+    if ($result->num_rows) {
+        $user = $result->fetch_assoc();
+
+        $_SESSION["user_id"] = $user["id"];
+        $_SESSION["user"] = [
+            "id" => $user["id"],
+            "name" => $user["name"],
+            "email" => $user["email"],
+            "role" => $user["role"],
+            "jabatan" => $user["jabatan"],
+            "foto_profile" => $user["foto_profile"],
+            "company_name" => $user["nama_company"]
+        ];
+    }
+
+    $stmt->close();
+} else if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
+    $token = $_COOKIE["remember"];
     $stmt = $conn->prepare("
       SELECT u.*, c.nama_company 
       FROM users u
@@ -60,7 +86,6 @@ if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
         ];
     }
 
-    $id_user = $_SESSION["user_id"];
     $stmt->close();
 } else if (!isset($_SESSION["user_id"]) && !isset($_COOKIE["remember"])) {
     $_SESSION["status"] = "error";
@@ -69,39 +94,21 @@ if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
     exit;
 }
 
-$stmt = $conn->prepare("SELECT  u.id, u.id_company, u.name, u.email,
-      u.password, u.role, u.jabatan, u.foto_profile, u.remember_token,
-      u.created_at AS user_created_at, c.nama_company, c.code_company,
-      c.code_verification, c.alamat_company, c.status_company, c.expired_at, c.created_at AS company_created_at
-  FROM users u
-  LEFT JOIN company c ON u.id_company = c.id_company
-  WHERE u.id = ?
-  LIMIT 1
+$user_id = $_SESSION["user_id"];
+$stmt = $conn->prepare("SELECT u.id, u.id_company, u.name,
+      u.email, u.password, u.role, u.jabatan, u.foto_profile, u.remember_token,
+      u.created_at AS user_created_at, c.nama_company, c.code_company, c.code_verification,
+      c.alamat_company, c.status_company, c.expired_at, c.created_at AS company_created_at
+  FROM users u LEFT JOIN company c ON u.id_company = c.id_company
+  WHERE u.id = ? LIMIT 1
 ");
 
-$stmt->bind_param("i", $id_user);
+$stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 $stmt->close();
-/* ===============================
-   CEK APAKAH USER DITEMUKAN
-================================ */
-if (!$user) {
-    // opsi 1: paksa logout
-    session_destroy();
-    $_SESSION["status"] = "error";
-    $_SESSION["message"] = "Silakan login terlebih dahulu.";
-    header("Location: login");
-    exit;
 
-    // atau opsi 2: tampilkan pesan
-    // die("User tidak ditemukan");
-}
-
-/* ===============================
-   SET SESSION JIKA DATA ADA
-================================ */
 $_SESSION["user"] = [
     "id"              => $user["id"],
     "id_company"      => $user["id_company"],
@@ -110,97 +117,37 @@ $_SESSION["user"] = [
     "role"            => $user["role"],
     "jabatan"         => $user["jabatan"],
     "foto_profile"    => $user["foto_profile"],
-    "company_name"    => $user["nama_company"] ?? null,
-    "company_code"    => $user["code_company"] ?? null,
-    "status_company"  => $user["status_company"] ?? null,
-    "expired_at"      => $user["expired_at"] ?? null,
-    "company_address" => $user["alamat_company"] ?? null
+    "company_name"    => $user["nama_company"],
+    "company_code"    => $user["code_company"],
+    "status_company"  => $user["status_company"],
+    "expired_at"      => $user["expired_at"],
+    "company_address" => $user["alamat_company"]
 ];
 
 $sesi_user = $_SESSION["user"];
-$nama_karyawan = $sesi_user['name'];
-// Mendapatkan waktu saat ini
-$jam = date("H");  // Jam dalam format 24 jam
-$hari = date("l");  // Nama hari dalam bahasa Inggris
-$tanggal = date("d F Y");  // Tanggal dalam format dd F yyyy
-$waktu_salam = "";
-$datenow = date("Y-m-d");
+$id_user = $sesi_user["id"];
+$id_company = $sesi_user["id_company"];
 
-// Mengubah nama hari ke bahasa Indonesia
-$hari_indonesia = [
-    "Sunday" => "Minggu",
-    "Monday" => "Senin",
-    "Tuesday" => "Selasa",
-    "Wednesday" => "Rabu",
-    "Thursday" => "Kamis",
-    "Friday" => "Jumat",
-    "Saturday" => "Sabtu"
-];
-// Mengubah nama bulan ke bahasa Indonesia
-$bulan_indonesia = [
-    "January" => "Januari",
-    "February" => "Februari",
-    "March" => "Maret",
-    "April" => "April",
-    "May" => "Mei",
-    "June" => "Juni",
-    "July" => "Juli",
-    "August" => "Agustus",
-    "September" => "September",
-    "October" => "Oktober",
-    "November" => "November",
-    "December" => "Desember"
-];
-// Ubah nama hari dan bulan ke bahasa Indonesia
-$hari = $hari_indonesia[$hari];
-$bulan = $bulan_indonesia[date("F")];
-$tanggal = date("d") . " " . $bulan . " " . date("Y");
+$query = "
+SELECT 
+    r.id,
+    u.name AS nama_karyawan,
+    r.jenis,
+    r.kategori,
+    r.tanggal_mulai,
+    r.tanggal_selesai,
+    r.jumlah_hari,
+    r.is_half_day,
+    r.alasan,
+    r.file_pendukung,
+    r.status,
+    r.created_at
+FROM request_izin_cuti r
+JOIN users u ON u.id = r.id_user WHERE u.id_company = '$id_company'
+ORDER BY r.created_at DESC
+";
 
-$nama_bulan = date('m');
-$nama_tahun = date('Y');
-$jumlahHari = cal_days_in_month(CAL_GREGORIAN, $nama_bulan, $nama_tahun);
-$query = mysqli_query($conn, " SELECT *
-    FROM absensi WHERE id_user = $id_user
-    AND MONTH(tanggal) = $nama_bulan
-    AND YEAR(tanggal) = $nama_tahun
-");
-
-$dataAbsensi = [];
-while ($row = mysqli_fetch_assoc($query)) {
-    $dataAbsensi[$row['tanggal']] = $row;
-}
-
-function hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamPulang) {
-    if (
-        $jamMasuk == '-' || empty($jamMasuk) ||
-        $jamMulaiIstirahat == '-' || empty($jamMulaiIstirahat) ||
-        $jamSelesaiIstirahat == '-' || empty($jamSelesaiIstirahat) ||
-        $jamPulang == '-' || empty($jamPulang)
-    ) {
-        return '-';
-    }
-
-    $jamMasukTime            = strtotime($jamMasuk);
-    $jamMulaiIstirahatTime   = strtotime($jamMulaiIstirahat);
-    $jamSelesaiIstirahatTime = strtotime($jamSelesaiIstirahat);
-    $jamPulangTime           = strtotime($jamPulang);
-
-    // Jam kerja sebelum dan sesudah istirahat (dalam jam)
-    $jamSesiPertama = ($jamMulaiIstirahatTime - $jamMasukTime) / 3600;
-    $jamSesiKedua   = ($jamPulangTime - $jamSelesaiIstirahatTime) / 3600;
-
-    $totalJamKerja = $jamSesiPertama + $jamSesiKedua;
-    $jamKerjaNormal = 7;
-
-    if ($totalJamKerja <= $jamKerjaNormal) {
-        return '0 jam';
-    }
-
-    $lembur = $totalJamKerja - $jamKerjaNormal;
-    return number_format($lembur, 1) . ' jam';
-}
-
-
+$result = $conn->query($query);
 
 ?>
 <!DOCTYPE html>
@@ -212,7 +159,7 @@ function hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamP
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="Trivanox - HR Management" />
     <meta name="author" content="Ahmad Zaelani" />
-    <title>Data Absensi Karyawan - HR Management</title>
+    <title>Data Izin, Cuti & Sakit - HR Management</title>
     <link rel="icon" href="assets/images/logo-trivanox.png" type="image/x-icon">
     <!-- loader-->
     <link href="assets/css/pace.min.css" rel="stylesheet" />
@@ -273,10 +220,6 @@ function hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamP
         <div class="content-wrapper">
             <div class="container-fluid">
 
-                <!-- Page Heading -->
-                <h4 class="h4 mb-2 text-gray-800">Data Absensi Karyawan</h4>
-                <p class="h5"><?= $_SESSION["user"]["company_name"] ?></p>
-
                 <?php if ($status): ?>
                     <div id="messages">
                         <div class="alert alert-<?= $status === 'success' ? 'success' : 'danger' ?> mt-3">
@@ -286,54 +229,108 @@ function hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamP
                         </div>
                     </div>
                 <?php endif; ?>
-
+                <!-- DataTales Example -->
                 <div class="card shadow mb-4">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="m-0 font-weight-bold">Data Absensi <?= $nama_karyawan ?></h5>
+                        <h5 class="m-0 font-weight-bold">Data Izin, Cuti & Sakit Karyawan</h5>
 
                     </div>
                     <div class="card-body">
-                        <table border="1" cellpadding="8" cellspacing="0">
-                            <tr>
-                                <th>Tanggal</th>
-                                <?php for ($i = 1; $i <= $jumlahHari; $i++): ?>
-                                    <th><?= $i ?></th>
-                                <?php endfor; ?>
-                            </tr>
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Nama</th>
+                                        <th>Jenis</th>
+                                        <th>Kategori</th>
+                                        <th>Tanggal</th>
+                                        <th>Hari</th>
+                                        <th>Alasan</th>
+                                        <th>File</th>
+                                        <th>Status</th>
+                                        <th>Diajukan</th>
+                                        <th>Approval Workflow</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if ($result->num_rows > 0): ?>
+                                        <?php $no = 1;
+                                        while ($row = $result->fetch_assoc()): ?>
+                                            <tr>
+                                                <td><?= $no++ ?></td>
+                                                <td><?= htmlspecialchars($row['nama_karyawan']) ?></td>
+                                                <td><?= htmlspecialchars(ucfirst($row['jenis'])) ?></td>
+                                                <td><?= htmlspecialchars($row['kategori']) ?></td>
+                                                <td>
+                                                    <?= $row['tanggal_mulai'] ?>
+                                                    <?php if ($row['tanggal_mulai'] != $row['tanggal_selesai']): ?>
+                                                        <br>s/d <?= $row['tanggal_selesai'] ?>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <?= $row['jumlah_hari'] ?>
+                                                    <?php if ($row['is_half_day']): ?>
+                                                        <small>(½ Hari)</small>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td><?= htmlspecialchars($row['alasan']) ?></td>
+                                                <td>
+                                                    <?php if (!empty($row['file_pendukung'])): ?>
+                                                        <a href="<?= $row['file_pendukung'] ?>" target="_blank" class="btn btn-sm btn-light">
+                                                            Lihat
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <small class="text-muted">-</small>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <?php
+                                                    $badge = [
+                                                        'pending'  => 'warning',
+                                                        'approved' => 'success',
+                                                        'rejected' => 'danger'
+                                                    ];
+                                                    ?>
+                                                    <span class="btn btn-sm btn-<?= $badge[$row['status']] ?? 'secondary' ?>" disable>
+                                                        <?= ucfirst($row['status']) ?>
+                                                    </span>
+                                                </td>
+                                                <td><?= date('d M Y H:i', strtotime($row['created_at'])) ?></td>
+                                                <td>
+                                                    <?php if ($row['status'] === 'pending'): ?>
+                                                        <a href="#" class="btn btn-sm btn-success"><i class="zmdi zmdi-check"></i> Setujui</a>
+                                                        <a href="#" class="btn btn-sm btn-danger"><i class="zmdi zmdi-close-circle"></i> Tolak</a>
+                                                        <a href="#" class="btn btn-sm btn-warning"><i class="zmdi zmdi-block"></i> Batalkan</a>
+                                                    <?php else: ?>
+                                                        <?php
+                                                        $badge = [
+                                                            'pending'  => 'warning',
+                                                            'approved' => 'success',
+                                                            'rejected' => 'danger'
+                                                        ];
+                                                        ?>
+                                                        <span class="btn btn-sm btn-<?= $badge[$row['status']] ?? 'secondary' ?>" disable>
+                                                            <?= ucfirst($row['status']) ?>
+                                                        </span>
+                                                        <a href="#" class="btn btn-sm btn-light"><i class="zmdi zmdi-edit"></i> Edit</a>
 
-                            <?php
-                            $rows = [
-                                'Jam Masuk' => 'jam_masuk',
-                                'Mulai Istirahat' => 'jam_mulai_istirahat',
-                                'Selesai Istirahat' => 'jam_selesai_istirahat',
-                                'Jam Pulang' => 'jam_pulang'
-                            ];
-                            ?>
+                                                    <?php endif; ?>
 
-                            <?php foreach ($rows as $label => $field): ?>
-                                <tr>
-                                    <td><?= $label ?></td>
-                                    <?php for ($i = 1; $i <= $jumlahHari; $i++):
-                                        $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
-                                        echo "<td>" . ($dataAbsensi[$nama_tanggal][$field] ?? '-') . "</td>";
-                                    endfor; ?>
-                                </tr>
-                            <?php endforeach; ?>
 
-                            <!-- Baris Lembur -->
-                            <tr>
-                                <td>Lembur</td>
-                                <?php for ($i = 1; $i <= $jumlahHari; $i++):
-                                    $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
-                                    $jamMasuk = $dataAbsensi[$nama_tanggal]['jam_masuk'] ?? '-';
-                                    $jamMulaiIstirahat = $dataAbsensi[$nama_tanggal]['jam_mulai_istirahat'] ?? '-';
-                                    $jamSelesaiIstirahat = $dataAbsensi[$nama_tanggal]['jam_selesai_istirahat'] ?? '-';
-                                    $jamPulang = $dataAbsensi[$nama_tanggal]['jam_pulang'] ?? '-';
-                                    echo "<td>" . hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamPulang) . "</td>";
-                                endfor; ?>
-                            </tr>
-                        </table>
-
+                                                </td>
+                                            </tr>
+                                        <?php endwhile; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="9" class="text-center text-muted">
+                                                Belum ada pengajuan
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 <!--start overlay-->

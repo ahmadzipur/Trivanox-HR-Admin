@@ -13,38 +13,66 @@
                 <i class="zmdi zmdi-view-dashboard"></i> <span>Dashboard</span>
             </a>
         </li>
-        
-          <?php if ($sesi_user["role"]==='staff' || $sesi_user["role"]==='admin' ): ?>
-            <?php if ($sesi_user["role"]==='staff'): ?>
 
+        <?php if ($sesi_user["role"] === 'staff' || $sesi_user["role"] === 'admin'): ?>
+            <li>
+                <a href="absensi">
+                    <i class="zmdi zmdi-time"></i> <span>Absensi</span>
+                </a>
+            </li>
+            <li>
+                <a href="company">
+                    <i class="zmdi zmdi-store"></i> <span>Perusahaan</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="branch">
+                    <i class="zmdi zmdi-city"></i> <span>Cabang</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="divisi">
+                    <i class="zmdi zmdi-collection-text"></i> <span>Divisi</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="karyawan">
+                    <i class="zmdi zmdi-face"></i> <span>Karyawan</span>
+                </a>
+            </li>
+            <li>
+                <a href="data-absensi">
+                    <i class="zmdi zmdi-calendar"></i> <span>Data Absensi Karyawan</span>
+                </a>
+            </li>
+            <li>
+                <a href="data-izin-cuti">
+                    <i class="zmdi zmdi-assignment-check"></i> <span>Data Izin, Cuti & Sakit</span>
+                </a>
+            </li>
+        <?php endif; ?>
         <li>
-            <a href="company">
-                <i class="zmdi zmdi-store"></i> <span>Perusahaan</span>
+            <a href="data-absensi-saya">
+                <i class="zmdi zmdi-calendar"></i> <span>Data Absensi Saya</span>
             </a>
         </li>
-            
-          <?php endif; ?>
-
         <li>
-            <a href="karyawan">
-                <i class="zmdi zmdi-face"></i> <span>Karyawan</span>
+            <a href="izin-cuti">
+                <i class="zmdi zmdi-check-circle"></i> <span>Pengajuan Izin, Cuti & Sakit</span>
+            </a>
+        <li>
+            <a href="profile">
+                <i class="zmdi zmdi-account"></i> <span>Profile</span>
             </a>
         </li>
         <li>
-            <a href="icons.html">
-                
-<i class="zmdi zmdi-calendar-check"></i> <span>Cuti</span>
+            <a href="notifikasi">
+                <i class="zmdi zmdi-notifications"></i> <span>Notifikasi</span>
             </a>
         </li>
-
-        <li>
-            <a href="forms.html">
-                
-<i class="zmdi zmdi-assignment-check"></i> <span>Izin</span>
-            </a>
-        </li>
-
-          <?php endif; ?>
 
     </ul>
 

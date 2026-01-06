@@ -13,7 +13,6 @@ $encryption = new Encryption($key);
 // Ambil tema yang disimpan di session
 $savedTheme = isset($_SESSION['selectedTheme']) ? $_SESSION['selectedTheme'] : 'bg-theme bg-theme1'; // Default tema jika tidak ada
 
-$id_user = $_SESSION["user_id"] ?? '';
 /* ---------------------------------------------------
    FLASH MESSAGE
 --------------------------------------------------- */
@@ -31,9 +30,35 @@ $csrf = $_SESSION['csrf_token'];
 // ==============================
 // CEK LOGIN
 // ==============================
-if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
-    $token = $_COOKIE["remember"];
+if (isset($_SESSION["user_id"])) {
+    $stmt = $conn->prepare("
+      SELECT u.*, c.nama_company 
+      FROM users u
+      LEFT JOIN company c ON u.id_company = c.id_company
+      WHERE u.id = ?
+      LIMIT 1
+    ");
+    $stmt->bind_param("s", $_SESSION["user_id"]);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
+    if ($result->num_rows) {
+        $user = $result->fetch_assoc();
+
+        $_SESSION["user_id"] = $user["id"];
+        $_SESSION["user"] = [
+            "id" => $user["id"],
+            "name" => $user["name"],
+            "email" => $user["email"],
+            "role" => $user["role"],
+            "jabatan" => $user["jabatan"],
+            "foto_profile" => $user["foto_profile"],
+            "company_name" => $user["nama_company"]
+        ];
+    }
+    $stmt->close();
+} else if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
+    $token = $_COOKIE["remember"];
     $stmt = $conn->prepare("
       SELECT u.*, c.nama_company 
       FROM users u
@@ -59,8 +84,6 @@ if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
             "company_name" => $user["nama_company"]
         ];
     }
-
-    $id_user = $_SESSION["user_id"];
     $stmt->close();
 } else if (!isset($_SESSION["user_id"]) && !isset($_COOKIE["remember"])) {
     $_SESSION["status"] = "error";
@@ -69,6 +92,7 @@ if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
     exit;
 }
 
+$id_user = $_SESSION["user_id"];
 $stmt = $conn->prepare("SELECT  u.id, u.id_company, u.name, u.email,
       u.password, u.role, u.jabatan, u.foto_profile, u.remember_token,
       u.created_at AS user_created_at, c.nama_company, c.code_company,
@@ -84,19 +108,16 @@ $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 $stmt->close();
+
 /* ===============================
    CEK APAKAH USER DITEMUKAN
 ================================ */
 if (!$user) {
-    // opsi 1: paksa logout
     session_destroy();
     $_SESSION["status"] = "error";
     $_SESSION["message"] = "Silakan login terlebih dahulu.";
     header("Location: login");
     exit;
-
-    // atau opsi 2: tampilkan pesan
-    // die("User tidak ditemukan");
 }
 
 /* ===============================
@@ -118,89 +139,10 @@ $_SESSION["user"] = [
 ];
 
 $sesi_user = $_SESSION["user"];
-$nama_karyawan = $sesi_user['name'];
-// Mendapatkan waktu saat ini
-$jam = date("H");  // Jam dalam format 24 jam
-$hari = date("l");  // Nama hari dalam bahasa Inggris
-$tanggal = date("d F Y");  // Tanggal dalam format dd F yyyy
-$waktu_salam = "";
-$datenow = date("Y-m-d");
-
-// Mengubah nama hari ke bahasa Indonesia
-$hari_indonesia = [
-    "Sunday" => "Minggu",
-    "Monday" => "Senin",
-    "Tuesday" => "Selasa",
-    "Wednesday" => "Rabu",
-    "Thursday" => "Kamis",
-    "Friday" => "Jumat",
-    "Saturday" => "Sabtu"
-];
-// Mengubah nama bulan ke bahasa Indonesia
-$bulan_indonesia = [
-    "January" => "Januari",
-    "February" => "Februari",
-    "March" => "Maret",
-    "April" => "April",
-    "May" => "Mei",
-    "June" => "Juni",
-    "July" => "Juli",
-    "August" => "Agustus",
-    "September" => "September",
-    "October" => "Oktober",
-    "November" => "November",
-    "December" => "Desember"
-];
-// Ubah nama hari dan bulan ke bahasa Indonesia
-$hari = $hari_indonesia[$hari];
-$bulan = $bulan_indonesia[date("F")];
-$tanggal = date("d") . " " . $bulan . " " . date("Y");
-
-$nama_bulan = date('m');
-$nama_tahun = date('Y');
-$jumlahHari = cal_days_in_month(CAL_GREGORIAN, $nama_bulan, $nama_tahun);
-$query = mysqli_query($conn, " SELECT *
-    FROM absensi WHERE id_user = $id_user
-    AND MONTH(tanggal) = $nama_bulan
-    AND YEAR(tanggal) = $nama_tahun
-");
-
-$dataAbsensi = [];
-while ($row = mysqli_fetch_assoc($query)) {
-    $dataAbsensi[$row['tanggal']] = $row;
-}
-
-function hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamPulang) {
-    if (
-        $jamMasuk == '-' || empty($jamMasuk) ||
-        $jamMulaiIstirahat == '-' || empty($jamMulaiIstirahat) ||
-        $jamSelesaiIstirahat == '-' || empty($jamSelesaiIstirahat) ||
-        $jamPulang == '-' || empty($jamPulang)
-    ) {
-        return '-';
-    }
-
-    $jamMasukTime            = strtotime($jamMasuk);
-    $jamMulaiIstirahatTime   = strtotime($jamMulaiIstirahat);
-    $jamSelesaiIstirahatTime = strtotime($jamSelesaiIstirahat);
-    $jamPulangTime           = strtotime($jamPulang);
-
-    // Jam kerja sebelum dan sesudah istirahat (dalam jam)
-    $jamSesiPertama = ($jamMulaiIstirahatTime - $jamMasukTime) / 3600;
-    $jamSesiKedua   = ($jamPulangTime - $jamSelesaiIstirahatTime) / 3600;
-
-    $totalJamKerja = $jamSesiPertama + $jamSesiKedua;
-    $jamKerjaNormal = 7;
-
-    if ($totalJamKerja <= $jamKerjaNormal) {
-        return '0 jam';
-    }
-
-    $lembur = $totalJamKerja - $jamKerjaNormal;
-    return number_format($lembur, 1) . ' jam';
-}
-
-
+$stmt_branch = $conn->prepare("SELECT * FROM branch_company WHERE id_company = ? ");
+$stmt_branch->bind_param("i", $sesi_user['id_company']); // i = integer
+$stmt_branch->execute();
+$result_branch = $stmt_branch->get_result();
 
 ?>
 <!DOCTYPE html>
@@ -212,7 +154,7 @@ function hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamP
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="description" content="Trivanox - HR Management" />
     <meta name="author" content="Ahmad Zaelani" />
-    <title>Data Absensi Karyawan - HR Management</title>
+    <title>Data Cabang Perusahaan - HR Management</title>
     <link rel="icon" href="assets/images/logo-trivanox.png" type="image/x-icon">
     <!-- loader-->
     <link href="assets/css/pace.min.css" rel="stylesheet" />
@@ -264,19 +206,14 @@ function hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamP
 
     <!-- Start wrapper-->
     <div id="wrapper">
-
         <?php include 'left-sidebar.php'; ?>
         <?php include 'topbar.php'; ?>
-
         <div class="clearfix"></div>
-
         <div class="content-wrapper">
             <div class="container-fluid">
-
                 <!-- Page Heading -->
-                <h4 class="h4 mb-2 text-gray-800">Data Absensi Karyawan</h4>
+                <h4 class="h4 mb-2 text-gray-800">Data Cabang Perusahaan</h4>
                 <p class="h5"><?= $_SESSION["user"]["company_name"] ?></p>
-
                 <?php if ($status): ?>
                     <div id="messages">
                         <div class="alert alert-<?= $status === 'success' ? 'success' : 'danger' ?> mt-3">
@@ -286,54 +223,45 @@ function hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamP
                         </div>
                     </div>
                 <?php endif; ?>
-
+                <!-- DataTales Example -->
                 <div class="card shadow mb-4">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="m-0 font-weight-bold">Data Absensi <?= $nama_karyawan ?></h5>
-
+                        <h5 class="m-0 font-weight-bold">Data Cabang Perusahaan</h5>
+                        <a href="tambah-cabang" class="btn btn-sm btn-light"><i class="zmdi zmdi-plus"></i> <span>Tambah Cabang</span></a>
                     </div>
                     <div class="card-body">
-                        <table border="1" cellpadding="8" cellspacing="0">
-                            <tr>
-                                <th>Tanggal</th>
-                                <?php for ($i = 1; $i <= $jumlahHari; $i++): ?>
-                                    <th><?= $i ?></th>
-                                <?php endfor; ?>
-                            </tr>
-
-                            <?php
-                            $rows = [
-                                'Jam Masuk' => 'jam_masuk',
-                                'Mulai Istirahat' => 'jam_mulai_istirahat',
-                                'Selesai Istirahat' => 'jam_selesai_istirahat',
-                                'Jam Pulang' => 'jam_pulang'
-                            ];
-                            ?>
-
-                            <?php foreach ($rows as $label => $field): ?>
-                                <tr>
-                                    <td><?= $label ?></td>
-                                    <?php for ($i = 1; $i <= $jumlahHari; $i++):
-                                        $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
-                                        echo "<td>" . ($dataAbsensi[$nama_tanggal][$field] ?? '-') . "</td>";
-                                    endfor; ?>
-                                </tr>
-                            <?php endforeach; ?>
-
-                            <!-- Baris Lembur -->
-                            <tr>
-                                <td>Lembur</td>
-                                <?php for ($i = 1; $i <= $jumlahHari; $i++):
-                                    $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
-                                    $jamMasuk = $dataAbsensi[$nama_tanggal]['jam_masuk'] ?? '-';
-                                    $jamMulaiIstirahat = $dataAbsensi[$nama_tanggal]['jam_mulai_istirahat'] ?? '-';
-                                    $jamSelesaiIstirahat = $dataAbsensi[$nama_tanggal]['jam_selesai_istirahat'] ?? '-';
-                                    $jamPulang = $dataAbsensi[$nama_tanggal]['jam_pulang'] ?? '-';
-                                    echo "<td>" . hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamPulang) . "</td>";
-                                endfor; ?>
-                            </tr>
-                        </table>
-
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">No</th>
+                                        <th scope="col">Kode Cabang</th>
+                                        <th scope="col">Nama Cabang</th>
+                                        <th scope="col">Alamat</th>
+                                        <th scope="col">Telepon</th>
+                                        <th scope="col">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $no = 1;
+                                    while ($row_branch = mysqli_fetch_assoc($result_branch)) { ?>
+                                        <tr>
+                                            <td><?= $no++; ?></td>
+                                            <td><?= $row_branch['kode_cabang']; ?></td>
+                                            <td><?= $row_branch['nama_cabang']; ?></td>
+                                            <td><?= $row_branch['alamat']; ?></td>
+                                            <td><?= $row_branch['telepon']; ?></td>
+                                            <td>
+                                                <a href="detail-branch?id=<?= urlencode($encryption->encrypt($row_branch['id_branch'])) ?>"
+                                                    class="btn btn-sm btn-info"> <i class="zmdi zmdi-eye"></i> Detail
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    <?php } ?>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 <!--start overlay-->
