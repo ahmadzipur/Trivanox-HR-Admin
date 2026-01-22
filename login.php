@@ -2,14 +2,43 @@
 include 'error_handler.php';
 session_start();
 include "koneksi.php";
+date_default_timezone_set("Asia/Jakarta");  // Set zona waktu ke Jakarta
 
 // Mengambil tema yang disimpan (jika ada)
 // Ambil tema yang disimpan di session
 $savedTheme = isset($_SESSION['selectedTheme']) ? $_SESSION['selectedTheme'] : 'bg-theme bg-theme1'; // Default tema jika tidak ada
+$now        = date('Y-m-d H:i:s');
 
+$resultRow = null;
+$userLat = null;
+$userLng = null;
+$district = null;
+$regency = null;
+$province = null;
+$id_user = null;
+$title = null;
+$message = null;
+$target_page = null;
+$icon = null;
+$color = null;
 /* ---------------------------------------------------
    AUTO LOGIN VIA COOKIE REMEMBER ME
 --------------------------------------------------- */
+if (isset($_SESSION['user_id'])) {
+  $stmt = $conn->prepare("SELECT id FROM users WHERE id = ?");
+  $stmt->bind_param("s", $_SESSION['user_id']);
+  $stmt->execute();
+  $res = $stmt->get_result();
+
+  if ($res->num_rows === 1) {
+    $user = $res->fetch_assoc();
+    $_SESSION['user_id'] = $user['id'];
+    header("Location: index");
+    exit;
+  }
+  $stmt->close();
+}
+
 if (isset($_SESSION['user_id']) && isset($_COOKIE['remember'])) {
   $token = $_COOKIE['remember'];
 
@@ -105,7 +134,76 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   }
 
   $_SESSION['user_id'] = $user['id'];
+  $id_user = $user['id'];
+  
+    $userLat = (float) $_POST['latitude'];
+    $userLng = (float) $_POST['longitude'];
 
+    $sql_loc = "
+    SELECT 
+        d.name AS district,
+        r.name AS regency,
+        p.name AS province,
+        d.latitude AS district_lat,
+        d.longitude AS district_lng,
+        (
+            6371 * acos(
+                cos(radians(?))
+                * cos(radians(d.latitude))
+                * cos(radians(d.longitude) - radians(?))
+                + sin(radians(?))
+                * sin(radians(d.latitude))
+            )
+        ) AS distance_km
+    FROM districts d
+    JOIN regencies r ON d.regency_id = r.id
+    JOIN provinces p ON r.province_id = p.id
+    ORDER BY distance_km ASC
+    LIMIT 1
+    ";
+
+    $stmt_loc = $conn->prepare($sql_loc);
+    $stmt_loc->bind_param("ddd", $userLat, $userLng, $userLat);
+    $stmt_loc->execute();
+    $result_loc = $stmt_loc->get_result();
+
+    $resultRow = $result_loc->fetch_assoc();
+    
+        $title = 'Peringatan Login';
+        $message = 'Akun Anda telah mencoba login';
+        $target_page = 'notifikasi';
+        $icon = 'zmdi zmdi-account';
+        $color = 'warning';
+    if ($resultRow){
+        $district = strtoupper($resultRow['district']);
+        $regency = strtoupper($resultRow['regency']);
+        $province = strtoupper($resultRow['province']);
+        $title = 'Peringatan Login';
+        $message = 'Akun Anda telah mencoba login di sekitar '. $district . ', ' . $regency . ', ' . $province;
+        $target_page = 'notifikasi';
+        $icon = 'zmdi zmdi-account';
+        $color = 'warning';
+    }
+
+  $query_notif = "INSERT INTO notifications (id_user, title, message, target_page, target_id, icon, color, created_at, created_by, updated_at) 
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    // Menyiapkan statement
+    $stmt_notif = $conn->prepare($query_notif);
+
+    // Bind parameter
+    $stmt_notif->bind_param("isssisssis", $id_user, $title, $message, $target_page, $id_user, $icon, $color, $now, $id_user, $now);
+
+    // Eksekusi query
+    $stmt_notif->execute();
+    
+    // Menutup statement dan koneksi
+    $stmt_notif->close();
+    
+
+    $stmt = $conn->prepare("UPDATE users SET last_login=? WHERE id=?");
+    $stmt->bind_param("si", $now, $user['id']);
+    $stmt->execute();
   /* ---------------------------------------------------
      REMEMBER ME FUNCTIONAL
   --------------------------------------------------- */
@@ -134,6 +232,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   header('Location: index');
   exit;
 }
+
+$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -193,33 +293,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
           <div class="text-center px-5">
             <img src="assets/images/logo-trivanox-text-512.webp" style="height: 100px;" class="img-fluid" alt="logo icon">
           </div>
-          <?php
-          if ($status === 'success') {
-            echo '
-            <div id="messages">
-              <div class="alert alert-success mt-3">
-				        <div class="text-center p-1">
-				          <span><strong>' . $message . '</strong></span><br>
-				          <small>Akun Anda telah berhasil didaftarkan.<br>
-                    Silakan login menggunakan email dan password Anda.</small>
-				        </div>
-              </div>
-            </div>';
-          } else if ($status === 'error') {
-            echo '
-            <div id="messages">
-              <div class="alert alert-danger mt-3">
-				        <div class="text-center p-1">
-				          <span><strong>' . $message . '</strong></span>
-				        </div>
-              </div>
-            </div>';
-          }
-          ?>
+          
+        <?php if ($status): ?>
+        <div id="messages">
+            <div class="alert alert-<?= $status === 'success' ? 'success' : 'danger' ?> mt-3">
+                <div class="text-center p-1">
+                    <strong><?= htmlspecialchars($message) ?></strong>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
 
           <div class="card-title text-uppercase text-center py-2">Login</div>          
           <form action="" method="POST">
             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+            <input type="hidden" name="latitude" id="latitude">
+            <input type="hidden" name="longitude" id="longitude">
             <div class="form-group">
               <label for="email" class="sr-only">Email</label>
               <div class="position-relative has-icon-right">
@@ -245,48 +334,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                   <label for="remember">Remember me</label>
                 </div>
               </div>
-              <!--
-              <div class="form-group col-6 text-right">
-                <a href="reset-password">Reset Password</a>
-              </div>
-        -->
             </div>
             <button type="submit" class="btn btn-light btn-block">Masuk</button>
-            <!-- 
-            <div class="text-center mt-3">Sign In With</div>
-
-            <div class="form-row mt-4">
-              <div class="form-group mb-0 col-6">
-                <button type="button" class="btn btn-light btn-block"><i class="fa fa-facebook-square"></i> Facebook</button>
-              </div>
-              <div class="form-group mb-0 col-6 text-right">
-                <button type="button" class="btn btn-light btn-block"><i class="fa fa-twitter-square"></i> Twitter</button>
-              </div>
-            </div>
-            -->
 
           </form>
         </div>
-        <!--
-			  <div class="text-center mt-4">Login dengan:</div>
-			  
-			 <div class="form-row">
-			  <div class="form-group mb-0 col-6">
-			   <a href="#" class="btn btn-light btn-block">ID Karyawan</a>
-			 </div>
-			 <div class="form-group mb-0 col-6 text-right">
-			  <a href="#" class="btn btn-light btn-block">Nomor HP</a>
-			 </div>
-			</div>
-			-->
       </div>
-      
+      <!-- 
       <div class="card-footer text-center py-3">
         <p class="text-warning mb-0">Belum punya Perusahaan? <a href="comp-register"> Daftarkan Perusahaan Anda di sini</a></p>
       </div>
+      -->
       
       <div class="card-footer text-center py-3">
-        <p><a href="forgot-password">Lupa Password</a></p>
+        <p><a href="reset-password">Reset Password</a></p>
       </div>
     </div>
 
@@ -411,7 +472,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
   </script>
   <script src="assets/js/app-script.js"></script>
-
+<script>
+navigator.geolocation.getCurrentPosition(
+    pos => {
+        document.getElementById('latitude').value = pos.coords.latitude;
+        document.getElementById('longitude').value = pos.coords.longitude;
+    },
+    () => alert("Lokasi wajib diaktifkan")
+);
+</script>
 </body>
 
 </html>

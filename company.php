@@ -331,7 +331,7 @@ $companyTypes = [
                             <div class="form-group row">
                                 <label class="col-md-3 col-form-label">Provinsi</label>
                                 <div class="col-md-9">
-                                    <select class="form-control" name="province_id" id="province">
+                                    <select class="form-control" name="province_id" id="province" required>
                                         <option value="">-- Pilih Provinsi --</option>
                                         <?php foreach ($provinces as $p): ?>
                                             <option value="<?= $p['id'] ?>" <?= $p['id'] == $company['province_id'] ? 'selected' : '' ?>><?= $p['name'] ?>
@@ -345,7 +345,7 @@ $companyTypes = [
                             <div class="form-group row">
                                 <label class="col-md-3 col-form-label">Kabupaten / Kota</label>
                                 <div class="col-md-9">
-                                    <select class="form-control" name="regency_id" id="regency"></select>
+                                    <select class="form-control" name="regency_id" id="regency" required></select>
                                 </div>
                             </div>
 
@@ -353,7 +353,7 @@ $companyTypes = [
                             <div class="form-group row">
                                 <label class="col-md-3 col-form-label">Kecamatan</label>
                                 <div class="col-md-9">
-                                    <select class="form-control" name="district_id" id="district"></select>
+                                    <select class="form-control" name="district_id" id="district" required></select>
                                 </div>
                             </div>
 
@@ -361,7 +361,7 @@ $companyTypes = [
                             <div class="form-group row">
                                 <label class="col-md-3 col-form-label">Desa / Kelurahan</label>
                                 <div class="col-md-9">
-                                    <select class="form-control" name="village_id" id="village"></select>
+                                    <select class="form-control" name="village_id" id="village" required></select>
                                 </div>
                             </div>
 

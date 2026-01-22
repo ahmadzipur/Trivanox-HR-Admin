@@ -76,75 +76,82 @@ $csrf = $_SESSION['csrf_token'];
 // ==============================
 // CEK LOGIN
 // ==============================
+if (isset($_SESSION["user_id"])) {
+    $stmt = $conn->prepare("
+      SELECT u.*, c.nama_company, c.id_package 
+      FROM users u
+      LEFT JOIN company c ON u.id_company = c.id_company
+      WHERE u.id = ?
+      LIMIT 1
+    ");
+    $stmt->bind_param("s", $_SESSION["user_id"]);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-if (!isset($_SESSION["user_id"])) {
-  $_SESSION["status"] = "error";
-  $_SESSION["message"] = "Silakan login terlebih dahulu.";
-  header("Location: login");
-  exit;
-}
+    if ($result->num_rows) {
+        $user = $result->fetch_assoc();
 
-$user_id = $_SESSION["user_id"];
-if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
+        $_SESSION["user_id"] = $user["id"];
+        $_SESSION["user"] = [
+          "id" => $user["id"],
+          "id_company" => $user["id_company"],
+          "id_package" => $user["id_package"],
+          "name" => $user["name"],
+          "email" => $user["email"],
+          "role" => $user["role"],
+          "jabatan" => $user["jabatan"],
+          "foto_profile" => $user["foto_profile"],
+          "company_name" => $user["nama_company"]
+        ];
+    }
 
-  $token = $_COOKIE["remember"];
-
-  $stmt = $conn->prepare("
+    $stmt->close();
+} else if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
+    $token = $_COOKIE["remember"];
+    $stmt = $conn->prepare("
       SELECT u.*, c.nama_company 
       FROM users u
       LEFT JOIN company c ON u.id_company = c.id_company
       WHERE u.remember_token = ?
       LIMIT 1
     ");
-  $stmt->bind_param("s", $token);
-  $stmt->execute();
-  $result = $stmt->get_result();
+    $stmt->bind_param("s", $token);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-  if ($result->num_rows) {
-    $user = $result->fetch_assoc();
+    if ($result->num_rows) {
+        $user = $result->fetch_assoc();
 
-    $_SESSION["user_id"] = $user["id"];
-    $_SESSION["user"] = [
-      "id" => $user["id"],
-      "name" => $user["name"],
-      "email" => $user["email"],
-      "role" => $user["role"],
-      "jabatan" => $user["jabatan"],
-      "foto_profile" => $user["foto_profile"],
-      "company_name" => $user["nama_company"]
-    ];
-  }
+        $_SESSION["user_id"] = $user["id"];
+        $_SESSION["user"] = [
+          "id" => $user["id"],
+          "id_company" => $user["id_company"],
+          "name" => $user["name"],
+          "email" => $user["email"],
+          "role" => $user["role"],
+          "jabatan" => $user["jabatan"],
+          "foto_profile" => $user["foto_profile"],
+          "company_name" => $user["nama_company"]
+        ];
+    }
 
-  $stmt->close();
+    $stmt->close();
+} else if (!isset($_SESSION["user_id"]) && !isset($_COOKIE["remember"])) {
+    $_SESSION["status"] = "error";
+    $_SESSION["message"] = "Silakan login terlebih dahulu.";
+    header("Location: login");
+    exit;
 }
 
-$stmt = $conn->prepare("
-  SELECT 
-      u.id,
-      u.id_company,
-      u.name,
-      u.email,
-      u.password,
-      u.role,
-      u.jabatan,
-      u.foto_profile,
-      u.remember_token,
-      u.tanggal_masuk,
-      u.created_at AS user_created_at,
-      c.nama_company,
-      c.id_package,
-      c.code_company,
-      c.code_verification,
-      c.alamat_company,
-      c.company_logo,
-      c.status_company,
-      c.expired_at,
-      c.created_at AS company_created_at
-  FROM users u
-  LEFT JOIN company c ON u.id_company = c.id_company
-  WHERE u.id = ?
-  LIMIT 1
+$user_id = $_SESSION["user_id"]; 
+$stmt = $conn->prepare("SELECT u.id, u.id_company, u.name,
+      u.email, u.password, u.role, u.jabatan, u.foto_profile, u.remember_token,
+      u.created_at AS user_created_at, c.nama_company, c.id_package, c.code_company, c.code_verification,
+      c.alamat_company, c.status_company, c.expired_at, c.created_at AS company_created_at
+  FROM users u LEFT JOIN company c ON u.id_company = c.id_company
+  WHERE u.id = ? LIMIT 1
 ");
+
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -160,15 +167,14 @@ $_SESSION["user"] = [
   "role"            => $user["role"],
   "jabatan"         => $user["jabatan"],
   "foto_profile"    => $user["foto_profile"],
-  "tanggal_masuk"    => $user["tanggal_masuk"],
   "company_name"    => $user["nama_company"],
   "company_code"    => $user["code_company"],
-  "company_logo"    => $user["company_logo"],
   "status_company"  => $user["status_company"],
   "expired_at"      => $user["expired_at"],
   "company_address" => $user["alamat_company"]
 ];
 
+$sesi_user = $_SESSION["user"];
 $sesi_user = $_SESSION["user"];
 $id_user = $_SESSION["user"]["id"];
 $id_company = $sesi_user['id_company'];
@@ -430,7 +436,7 @@ if ($data_jk_karyawan['lainnya'] < 0) {
 // Cek data absensi
 $sql_cek_absen = "SELECT *
         FROM absensi
-        WHERE user_id = ?
+        WHERE id_user = ?
         AND tanggal = '$datenow'
         LIMIT 1";
 
@@ -448,9 +454,6 @@ if ($result_cek_absen->num_rows == 0) {
   if (empty($data_cek_absen['jam_masuk'])) {
     $status_absen = 0; // belum masuk
   } else {
-    if (empty($data_cek_absen['jam_mulai_istirahat']) && !empty($data_cek_absen['jam_pulang'])) {
-      $status_absen = 4; //selesai istirahat
-    }
     if (empty($data_cek_absen['jam_mulai_istirahat'])) {
       $status_absen = 1; // mau istirahat
     } else {
@@ -464,6 +467,9 @@ if ($result_cek_absen->num_rows == 0) {
         }
       }
     }
+    if (empty($data_cek_absen['jam_mulai_istirahat']) && !empty($data_cek_absen['jam_pulang'])) {
+      $status_absen = 4; //selesai istirahat
+    }
   }
 }
 
@@ -471,6 +477,29 @@ $stmt_cek_absen->close();
 $hideAll = ($status_absen === 4);
 $isStaff = isset($sesi_user['role']) && $sesi_user['role'] === 'staff';
 
+// Query untuk mengambil data notifikasi yang 'unread' berdasarkan id_user dan diurutkan berdasarkan tanggal terbaru
+$query_notifications = "SELECT * FROM notifications WHERE target_id = ? AND status = 'unread' ORDER BY created_at DESC LIMIT 5";
+$stmt_notifications = $conn->prepare($query_notifications);
+$stmt_notifications->bind_param("i", $_SESSION["user"]['id']);
+$stmt_notifications->execute();
+
+// Mengambil hasil query
+$result_notifications = $stmt_notifications->get_result();
+$notifications = [];
+if ($result_notifications->num_rows > 0) {
+    // Simpan semua data notifikasi ke dalam array
+    while ($row = $result_notifications->fetch_assoc()) {
+        $notifications[] = $row;
+    }
+
+    // Menyimpan array data notifikasi ke dalam session
+    $_SESSION['notifications'] = $notifications;
+} else {
+    $_SESSION['notifications'] = []; // Jika tidak ada notifikasi, simpan array kosong
+}
+
+// Menutup statement dan koneksi
+$stmt_notifications->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -646,11 +675,11 @@ $isStaff = isset($sesi_user['role']) && $sesi_user['role'] === 'staff';
                 $stmt = $conn->prepare("
                 SELECT *
                 FROM absensi
-                WHERE user_id = ?
+                WHERE id_user = ?
                   AND tanggal = ?
                 LIMIT 1
             ");
-                $stmt->bind_param("is", $_SESSION['user_id'], $tanggal);
+                $stmt->bind_param("is", $id_user, $tanggal);
                 $stmt->execute();
                 $result = $stmt->get_result();
                 $absen  = $result->fetch_assoc();
@@ -661,16 +690,15 @@ $isStaff = isset($sesi_user['role']) && $sesi_user['role'] === 'staff';
 
 
                   <p class="btn-white mb-3">📋 Absensi Hari Ini</p>
-
-                  <table class="table table-bordered">
+                  <table class="table table-bordered table-sm w-auto">
                     <tr class="btn-white">
                       <th>Tanggal</th>
-                      <td><?= htmlspecialchars($absen['tanggal']) ?></td>
+                      <td>: <?= !empty($absen['tanggal']) ? date('d-m-Y', strtotime($absen['tanggal'])) : '-' ?></td>
                     </tr>
 
                     <tr class="btn-white">
                       <th>Jam Masuk</th>
-                      <td>
+                      <td>: 
                         <?= $absen['jam_masuk'] ?? '-' ?>
                         <?php if (!empty($absen['latitude_masuk'])): ?>
                           <br>
@@ -685,17 +713,17 @@ $isStaff = isset($sesi_user['role']) && $sesi_user['role'] === 'staff';
 
                     <tr class="btn-white">
                       <th>Mulai Istirahat</th>
-                      <td><?= $absen['jam_mulai_istirahat'] ?? '-' ?></td>
+                      <td>: <?= $absen['jam_mulai_istirahat'] ?? '-' ?></td>
                     </tr>
 
                     <tr class="btn-white">
                       <th>Selesai Istirahat</th>
-                      <td><?= $absen['jam_selesai_istirahat'] ?? '-' ?></td>
+                      <td>: <?= $absen['jam_selesai_istirahat'] ?? '-' ?></td>
                     </tr>
 
                     <tr class="btn-white">
                       <th>Jam Pulang</th>
-                      <td>
+                      <td>: 
                         <?= $absen['jam_pulang'] ?? '-' ?>
                         <?php if (!empty($absen['latitude_pulang'])): ?>
                           <br>
@@ -710,16 +738,24 @@ $isStaff = isset($sesi_user['role']) && $sesi_user['role'] === 'staff';
 
                     <tr class="btn-white">
                       <th>Status</th>
-                      <td>
-                        <?= $absen['status']; ?>
+                      <td>: 
+                        <?php if ($absen['status'] === 'hadir'): ?>
+                        Hadir
+                        <?php elseif ($absen['status'] === 'izin'): ?>
+                        Izin
+                        <?php elseif ($absen['status'] === 'sakit'): ?>
+                        Sakit
+                        <?php else: ?>
+                        Alpa
+                        <?php endif; ?>
                       </td>
                     </tr>
                   </table>
 
-                  <div class="row m-3">
+                  <div class="row mb-3">
                     <?php if (!empty($absen['foto_masuk'])): ?>
-                      <div class="col-md-6 text-center">
-                        <h6>📸 Foto Masuk</h6>
+                      <div class="col-md-6 text-center mt-3">
+                        <h6 class="btn-white">📸 Foto Masuk</h6>
                         <img src="uploads/absensi/<?= $absen['foto_masuk'] ?>"
                           class="img-fluid rounded"
                           style="max-height:250px; width:auto;">
@@ -727,8 +763,8 @@ $isStaff = isset($sesi_user['role']) && $sesi_user['role'] === 'staff';
                     <?php endif; ?>
 
                     <?php if (!empty($absen['foto_pulang'])): ?>
-                      <div class="col-md-6 text-center">
-                        <h6>📸 Foto Pulang</h6>
+                      <div class="col-md-6 text-center mt-3">
+                        <h6 class="btn-white">📸 Foto Pulang</h6>
                         <img src="uploads/absensi/<?= $absen['foto_pulang'] ?>"
                           class="img-fluid rounded"
                           style="max-height:250px; width:auto;">

@@ -131,6 +131,7 @@ $id_company = $sesi_user["id_company"];
 $query = "
 SELECT 
     r.id,
+    r.id_user,
     u.name AS nama_karyawan,
     r.jenis,
     r.kategori,
@@ -257,15 +258,15 @@ $result = $conn->query($query);
                                     <?php if ($result->num_rows > 0): ?>
                                         <?php $no = 1;
                                         while ($row = $result->fetch_assoc()): ?>
-                                            <tr>
+                                            <tr data-id="<?= $row['id'] ?>">
                                                 <td><?= $no++ ?></td>
                                                 <td><?= htmlspecialchars($row['nama_karyawan']) ?></td>
                                                 <td><?= htmlspecialchars(ucfirst($row['jenis'])) ?></td>
                                                 <td><?= htmlspecialchars($row['kategori']) ?></td>
                                                 <td>
-                                                    <?= $row['tanggal_mulai'] ?>
+                                                    <?= date('d-m-Y', strtotime($row['tanggal_mulai'])) ?>
                                                     <?php if ($row['tanggal_mulai'] != $row['tanggal_selesai']): ?>
-                                                        <br>s/d <?= $row['tanggal_selesai'] ?>
+                                                        <br>s/d <?= date('d-m-Y', strtotime($row['tanggal_selesai'])) ?>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
@@ -288,6 +289,7 @@ $result = $conn->query($query);
                                                     <?php
                                                     $badge = [
                                                         'pending'  => 'warning',
+                                                        'cancelled'  => 'warning',
                                                         'approved' => 'success',
                                                         'rejected' => 'danger'
                                                     ];
@@ -298,26 +300,40 @@ $result = $conn->query($query);
                                                 </td>
                                                 <td><?= date('d M Y H:i', strtotime($row['created_at'])) ?></td>
                                                 <td>
+                                                    
                                                     <?php if ($row['status'] === 'pending'): ?>
-                                                        <a href="#" class="btn btn-sm btn-success"><i class="zmdi zmdi-check"></i> Setujui</a>
-                                                        <a href="#" class="btn btn-sm btn-danger"><i class="zmdi zmdi-close-circle"></i> Tolak</a>
-                                                        <a href="#" class="btn btn-sm btn-warning"><i class="zmdi zmdi-block"></i> Batalkan</a>
+                                                        <button class="btn btn-sm btn-success btn-approve"
+                                                            data-id="<?= $row['id'] ?>"
+                                                            data-user="<?= $row['id_user'] ?>">
+                                                            <i class="zmdi zmdi-check"></i> Setujui
+                                                        </button>
+                                                    
+                                                        <button class="btn btn-sm btn-danger btn-reject"
+                                                            data-id="<?= $row['id'] ?>"
+                                                            data-user="<?= $row['id_user'] ?>">
+                                                            <i class="zmdi zmdi-close-circle"></i> Tolak
+                                                        </button>
+                                                    
+                                                        <button class="btn btn-sm btn-warning btn-cancel"
+                                                            data-id="<?= $row['id'] ?>"
+                                                            data-user="<?= $row['id_user'] ?>">
+                                                            <i class="zmdi zmdi-block"></i> Batalkan
+                                                        </button>
                                                     <?php else: ?>
-                                                        <?php
-                                                        $badge = [
-                                                            'pending'  => 'warning',
-                                                            'approved' => 'success',
-                                                            'rejected' => 'danger'
-                                                        ];
-                                                        ?>
-                                                        <span class="btn btn-sm btn-<?= $badge[$row['status']] ?? 'secondary' ?>" disable>
-                                                            <?= ucfirst($row['status']) ?>
-                                                        </span>
-                                                        <a href="#" class="btn btn-sm btn-light"><i class="zmdi zmdi-edit"></i> Edit</a>
-
+                                                        <?php if ($row['status'] === 'approved'): ?>
+                                                            <span class="btn btn-sm btn-success" disabled>
+                                                                <?= ucfirst($row['status']) ?>
+                                                            </span>
+                                                        <?php elseif ($row['status'] === 'rejected'): ?>
+                                                            <span class="btn btn-sm btn-danger" disabled>
+                                                                <?= ucfirst($row['status']) ?>
+                                                            </span>
+                                                        <?php elseif ($row['status'] === 'cancelled'): ?>
+                                                            <span class="btn btn-sm btn-warning" disabled>
+                                                                <?= ucfirst($row['status']) ?>
+                                                            </span>
+                                                        <?php endif; ?>
                                                     <?php endif; ?>
-
-
                                                 </td>
                                             </tr>
                                         <?php endwhile; ?>
@@ -386,6 +402,25 @@ $result = $conn->query($query);
         <!--end color switcher-->
 
     </div><!--End wrapper-->
+    
+    <!-- Modal Reject -->
+<div class="modal fade" id="modalReject">
+  <div class="modal-dialog btn-white">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="btn-white my-0">Alasan Penolakan</h5>
+      </div>
+      <div class="modal-body btn-white">
+          <input type="hidden" id="reject_user">
+        <textarea id="reject_reason" class="form-control btn-white" style="background-color: #ccc; color: #000 !important;" required></textarea>
+        <input type="hidden" id="reject_id">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="confirmReject">Tolak</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 
     <!-- Bootstrap core JavaScript-->
@@ -466,8 +501,6 @@ $result = $conn->query($query);
     </script>
     <script src="assets/js/app-script.js"></script>
 
-
-
     <!-- template custom js -->
     <script src="js/main.js"></script>
     <!-- Page level plugins -->
@@ -486,6 +519,77 @@ $result = $conn->query($query);
             });
         });
     </script>
+
+<script>
+$(function(){
+
+    $(document).on('click', '.btn-approve', function(){
+        updateStatus(
+            $(this).data('id'),
+            'approved',
+            '',
+            $(this).data('user')
+        );
+    });
+
+    $(document).on('click', '.btn-cancel', function(){
+        updateStatus(
+            $(this).data('id'),
+            'cancelled',
+            '',
+            $(this).data('user')
+        );
+    });
+
+    $(document).on('click', '.btn-reject', function(){
+        $('#reject_reason').val('');
+        $('#reject_id').val($(this).data('id'));
+        $('#reject_user').val($(this).data('user'));
+        $('#modalReject').modal('show');
+    });
+
+    $('#confirmReject').click(function(){
+        let reason = $('#reject_reason').val();
+        let id     = $('#reject_id').val();
+        let user   = $('#reject_user').val();
+
+        if(!reason){
+            alert('Alasan penolakan wajib diisi');
+            return;
+        }
+
+        updateStatus(id, 'rejected', reason, user);
+    });
+
+    function updateStatus(id, status, reason = '', targetUser){
+        $.ajax({
+            url: 'approval-action.php',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                id: id,
+                status: status,
+                reason: reason,
+                target_user: targetUser
+            },
+            success: function(res){
+                console.log('SERVER:', res);
+
+                if(res.status === 'success'){
+                    location.reload();
+                } else {
+                    alert(res.message || 'Gagal memproses data');
+                }
+            },
+            error: function(xhr){
+                console.error('RAW RESPONSE:', xhr.responseText);
+                alert('Gagal memproses data (server)');
+            }
+        });
+    }
+
+});
+</script>
 
 
 </body>

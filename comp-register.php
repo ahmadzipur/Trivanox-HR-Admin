@@ -4,6 +4,8 @@
 session_start();
 include 'koneksi.php';
 include 'error_handler.php';
+require_once 'config_mail.php';
+
 date_default_timezone_set('Asia/Jakarta');
 
 /*
@@ -33,9 +35,6 @@ $message = $_SESSION['message'] ?? null;
 unset($_SESSION['status'], $_SESSION['message']);
 // GET → tampilkan form
 if ($isPost) {
-    // POST → proses data
-    $_SESSION['old'] = $_POST;
-    
     /*
     |--------------------------------------------------------------------------
     | GUARD
@@ -54,6 +53,26 @@ if ($isPost) {
         header("Location: comp-register");
         exit;
     }
+    
+    $checkEmail = $conn->prepare("SELECT id FROM users WHERE email = ?");
+    $checkEmail->bind_param("s", $_POST['email_company']);
+    $checkEmail->execute();
+    $checkEmail->store_result();
+    
+    if ($checkEmail->num_rows > 0) {
+        fail('Email sudah terdaftar, gunakan email lain.');
+    }
+    $checkEmail->close();
+    
+    $checkEmailCompany = $conn->prepare("SELECT id_company FROM company WHERE email_company = ?");
+    $checkEmailCompany->bind_param("s", $_POST['email_company']);
+    $checkEmailCompany->execute();
+    $checkEmailCompany->store_result();
+    
+    if ($checkEmailCompany->num_rows > 0) {
+        fail('Email sudah terdaftar, gunakan email lain.');
+    }
+    $checkEmailCompany->close();
     
     function uploadImage(string $field, string $dir, string $prefix): string {
         if (empty($_FILES[$field]['name'])) {
@@ -140,7 +159,7 @@ if ($isPost) {
     $email    = $email_company;
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     
-    $status_company = 'nonactive';
+    $status_company = 'inactive';
     $role           = 'staff';
     $now            = date('Y-m-d H:i:s');
     $datenow        = date('Y-m-d');
@@ -240,16 +259,16 @@ if ($isPost) {
     try {
         $mail = new PHPMailer(true);
         $mail->isSMTP();
-        $mail->Host       = $_ENV['SMTP_HOST'];
+        $mail->Host       = $config['SMTP_HOST'];
         $mail->SMTPAuth   = true;
-        $mail->Username   = $_ENV['SMTP_USER'];
-        $mail->Password   = $_ENV['SMTP_PASS'];
+        $mail->Username   = $config['SMTP_USER'];
+        $mail->Password   = $config['SMTP_PASS'];
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
         $mail->Port       = 465;
     
-        $mail->setFrom($_ENV['SMTP_USER'], 'Ryzola');
+        $mail->setFrom($config['SMTP_USER'], 'Ryzola');
         $mail->addAddress($email_company);
-        $mail->addReplyTo($_ENV['SMTP_USER'], 'Ryzola Support');
+        $mail->addReplyTo($config['SMTP_USER'], 'Ryzola Support');
     
         $mail->isHTML(true);
         $mail->Subject = 'Pendaftaran Perusahaan Berhasil';

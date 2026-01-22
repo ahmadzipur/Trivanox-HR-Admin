@@ -13,12 +13,24 @@ $encryption = new Encryption($key);
 // Ambil tema yang disimpan di session
 $savedTheme = isset($_SESSION['selectedTheme']) ? $_SESSION['selectedTheme'] : 'bg-theme bg-theme1'; // Default tema jika tidak ada
 
+/* ---------------------------------------------------
+   FLASH MESSAGE
+--------------------------------------------------- */
+$status = $_SESSION['status'] ?? '';
+$message = $_SESSION['message'] ?? '';
+unset($_SESSION['status'], $_SESSION['message']);
+
+/* ---------------------------------------------------
+   CSRF TOKEN
+--------------------------------------------------- */
+if (empty($_SESSION['csrf_token'])) {
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf = $_SESSION['csrf_token'];
 // ==============================
 // CEK LOGIN
 // ==============================
-$user_id = $_SESSION["user_id"]; 
 if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
-
     $token = $_COOKIE["remember"];
 
     $stmt = $conn->prepare("
@@ -47,6 +59,7 @@ if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
         ];
     }
 
+    $user_id = $_SESSION["user_id"]; 
     $stmt->close();
 } else if (!isset($_SESSION["user_id"]) && !isset($_COOKIE["remember"])) {
     $_SESSION["status"] = "error";
@@ -55,54 +68,63 @@ if (!isset($_SESSION["user_id"]) && isset($_COOKIE["remember"])) {
     exit;
 }
 
-
-$stmt = $conn->prepare("
-  SELECT 
-      u.id,
-      u.id_company,
-      u.name,
-      u.email,
-      u.password,
-      u.role,
-      u.jabatan,
-      u.foto_profile,
-      u.remember_token,
-      u.created_at AS user_created_at,
-      c.nama_company,
-      c.code_company,
-      c.code_verification,
-      c.alamat_company,
-      c.status_company,
-      c.expired_at,
-      c.created_at AS company_created_at
+$user_id = $_SESSION["user_id"]; 
+$stmt = $conn->prepare("SELECT  u.id, u.id_company, u.name, u.email,
+      u.password, u.role, u.jabatan, u.foto_profile, u.remember_token,
+      u.created_at AS user_created_at, c.nama_company, c.code_company,
+      c.code_verification, c.alamat_company, c.status_company, c.expired_at, c.created_at AS company_created_at
   FROM users u
   LEFT JOIN company c ON u.id_company = c.id_company
   WHERE u.id = ?
   LIMIT 1
 ");
+
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 $stmt->close();
+/* ===============================
+   CEK APAKAH USER DITEMUKAN
+================================ */
+if (!$user) {
+    // opsi 1: paksa logout
+    session_destroy();
+    $_SESSION["status"] = "error";
+    $_SESSION["message"] = "Silakan login terlebih dahulu.";
+    header("Location: login");
+    exit;
 
+    // atau opsi 2: tampilkan pesan
+    // die("User tidak ditemukan");
+}
+
+/* ===============================
+   SET SESSION JIKA DATA ADA
+================================ */
 $_SESSION["user"] = [
-  "id"              => $user["id"],
-  "id_company"      => $user["id_company"],
-  "name"            => $user["name"],
-  "email"           => $user["email"],
-  "role"            => $user["role"],
-  "jabatan"         => $user["jabatan"],
-  "foto_profile"    => $user["foto_profile"],
-  "company_name"    => $user["nama_company"],
-  "company_code"    => $user["code_company"],
-  "status_company"  => $user["status_company"],
-  "expired_at"      => $user["expired_at"],
-  "company_address" => $user["alamat_company"]
+    "id"              => $user["id"],
+    "id_company"      => $user["id_company"],
+    "name"            => $user["name"],
+    "email"           => $user["email"],
+    "role"            => $user["role"],
+    "jabatan"         => $user["jabatan"],
+    "foto_profile"    => $user["foto_profile"],
+    "company_name"    => $user["nama_company"] ?? null,
+    "company_code"    => $user["code_company"] ?? null,
+    "status_company"  => $user["status_company"] ?? null,
+    "expired_at"      => $user["expired_at"] ?? null,
+    "company_address" => $user["alamat_company"] ?? null
 ];
 
 $sesi_user = $_SESSION["user"];
-$query_karyawan = mysqli_query($conn, "SELECT id, name, tanggal_masuk, role, jabatan, nomor_hp FROM users");
+$status_user = 'active';
+//$stmt_karyawan = $conn->prepare("SELECT id, name, tanggal_masuk, role, jabatan, nomor_hp FROM users WHERE id_company = ? AND status = ?");
+$stmt_karyawan = $conn->prepare("SELECT id, name, tanggal_masuk, role, jabatan, nomor_hp FROM users WHERE id_company = ?");
+//$stmt_karyawan->bind_param("is", $sesi_user['id_company'], $status_user); // i = integer
+$stmt_karyawan->bind_param("i", $sesi_user['id_company']); // i = integer
+$stmt_karyawan->execute();
+$result_karyawan = $stmt_karyawan->get_result();
 
 ?>
 <!DOCTYPE html>
@@ -170,6 +192,15 @@ $query_karyawan = mysqli_query($conn, "SELECT id, name, tanggal_masuk, role, jab
     <h4 class="h4 mb-2 text-gray-800">Data Karyawan</h4>
     <p class="h5"><?= $_SESSION["user"]["company_name"] ?></p>
 
+        <?php if ($status): ?>
+        <div id="messages">
+            <div class="alert alert-<?= $status === 'success' ? 'success' : 'danger' ?> mt-3">
+                <div class="text-center p-1">
+                    <strong><?= htmlspecialchars($message) ?></strong>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
 <!-- DataTales Example -->
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
@@ -194,7 +225,7 @@ $query_karyawan = mysqli_query($conn, "SELECT id, name, tanggal_masuk, role, jab
                   <tbody>
         <?php 
         $no = 1;
-        while($row_karyawan = mysqli_fetch_assoc($query_karyawan)) { ?>
+        while($row_karyawan = mysqli_fetch_assoc($result_karyawan)) { ?>
                     <tr>
                 <td><?= $no++; ?></td>
                 <td><?= $row_karyawan['name']; ?></td>
@@ -209,11 +240,6 @@ $query_karyawan = mysqli_query($conn, "SELECT id, name, tanggal_masuk, role, jab
                        class="btn btn-sm btn-info">
                        <i class="zmdi zmdi-eye"></i> Detail
                     </a>
-                    <?php if ($row_karyawan['nomor_hp'] === 'staff'): ?>
-                        <a href="hapus-karyawan?id=<?= $row_karyawan['id']; ?>" 
-                       onclick="return confirm('Yakin ingin menghapus?')" 
-                       class="btn btn-sm btn-danger"><i class="zmdi zmdi-delete"></i> Hapus</a>
-                    <?php endif; ?>
                 </td>
             </tr>
         <?php } ?>

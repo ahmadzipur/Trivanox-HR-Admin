@@ -27,6 +27,13 @@ if (empty($_SESSION['csrf_token'])) {
 }
 $csrf = $_SESSION['csrf_token'];
 $id_branch = $encryption->decrypt($_GET['id']);
+if (!$id_branch || !is_numeric($id_branch)) {
+    $_SESSION['status'] = 'error';
+    $_SESSION['message'] = 'ID cabang tidak valid';
+    header('Location: branch');
+    exit;
+}
+
 // ==============================
 // CEK LOGIN
 // ==============================
@@ -129,13 +136,25 @@ $_SESSION["user"] = [
 $sesi_user = $_SESSION["user"];
 $id_company = $sesi_user["id_company"];
 
-$stmt_branch = $conn->prepare("SELECT * FROM branch_company WHERE id_branch = ? LIMIT 1");
-$stmt_branch->bind_param("i", $id_branch);
+$stmt_branch = $conn->prepare("SELECT * FROM branch_company WHERE id_branch = ? AND id_company = ? LIMIT 1 ");
+$stmt_branch->bind_param("ii", $id_branch, $id_company);
 $stmt_branch->execute();
 $result_branch = $stmt_branch->get_result();
 $row_branch = $result_branch->fetch_assoc();
 $stmt_branch->close();
 
+if (!$row_branch) {
+    $_SESSION['status'] = 'error';
+    $_SESSION['message'] = 'Data cabang tidak ditemukan';
+    header('Location: branch');
+    exit;
+}
+
+$provinces = [];
+$result_provinces = $conn->query("SELECT id, name FROM provinces ORDER BY name");
+while ($row_provinces = $result_provinces->fetch_assoc()) {
+    $provinces[] = $row_provinces;
+}
 ?>
 
 <!DOCTYPE html>
@@ -202,25 +221,26 @@ $stmt_branch->close();
                     </div>
                 <?php endif; ?>
                 <div class="row mt-3">
-                    <form action="branch-update" method="POST" class="w-100" enctype="multipart/form-data">
+                    <form action="branch-update" method="POST" class="w-100">
                         <div class="row">
                             <div class="col-lg-12">
                                 <div class="card">
                                     <div class="card-body">
-                                        <input type="hidden" name="id_branch" id="id_branch" value="<?= $id_branch; ?>">
+                                        <input type="hidden" name="id_branch" id="id_branch" value="<?= $id_branch ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
 
                                         <div class="form-group">
                                             <label for="kode_cabang">Kode Cabang</label>
-                                            <input type="text" class="form-control" id="kode_cabang" name="kode_cabang" placeholder="Kode Cabang Perusahaan" value="<?= old('kode_cabang'); ?>">
+                                            <input type="text" class="form-control" id="kode_cabang" name="kode_cabang" placeholder="Kode Cabang Perusahaan" value="<?= htmlspecialchars($row_branch['kode_cabang']); ?>">
                                         </div>
                                         <div class="form-group">
                                             <label for="nama_cabang">Nama Cabang</label>
-                                            <input type="text" class="form-control" id="nama_cabang" name="nama_cabang" placeholder="Nama Cabang Perusahaan" value="<?= old('nama_cabang'); ?>">
+                                            <input type="text" class="form-control" id="nama_cabang" name="nama_cabang" placeholder="Nama Cabang Perusahaan" value="<?= htmlspecialchars($row_branch['nama_cabang']); ?>">
                                         </div>
                                         <div class="form-group">
                                             <label for="alamat">Alamat Lengkap</label>
                                             <textarea class="form-control" id="alamat" name="alamat" rows="3"
-                                                placeholder="Alamat Lengkap"><?= old('alamat') ?></textarea>
+                                                placeholder="Alamat Lengkap"><?= htmlspecialchars($row_branch['alamat']); ?></textarea>
                                         </div>
                                         <!-- PROVINCE -->
                                         <div class="form-group">
@@ -228,7 +248,7 @@ $stmt_branch->close();
                                             <select class="form-control" name="province_id" id="province_id" required>
                                                 <option value="">-- Pilih Provinsi --</option>
                                                 <?php foreach ($provinces as $p): ?>
-                                                    <option value="<?= $p['id'] ?>" <?= $p['id'] == old('province_id') ? 'selected' : '' ?>><?= $p['name'] ?>
+                                                    <option value="<?= $p['id'] ?>" <?= $p['id'] == $row_branch['province_id'] ? 'selected' : '' ?>><?= $p['name'] ?>
                                                     </option>
                                                 <?php endforeach ?>
                                             </select>
@@ -251,23 +271,23 @@ $stmt_branch->close();
                                         <div class="form-group">
                                             <label for="postal_code">Kode Pos</label>
                                             <input type="text" class="form-control" id="postal_code" name="postal_code"
-                                                value="<?= old('postal_code') ?>">
+                                                value="<?= $row_branch['postal_code'] ?>">
                                         </div>
                                         <div class="form-group">
                                             <label for="telepon">Telepon</label>
                                             <input type="text" class="form-control" id="telepon" name="telepon" placeholder="Nomor Telepon Perusahaan"
-                                                value="<?= old('nomor_hp') ?>">
+                                                value="<?= htmlspecialchars($row_branch['telepon']); ?>">
                                         </div>
                                         <div class="form-group">
                                             <label for="email">Email</label>
                                             <input type="email" class="form-control" id="email" name="email" placeholder="Alamat Email"
-                                                value="<?= old('email') ?>" required="">
+                                                value="<?= htmlspecialchars($row_branch['email']); ?>" required>
                                         </div>
                                         <div class="form-group">
                                             <label for="status">Status</label>
                                             <select class="form-control" id="status" name="status">
-                                                <option value="active" <?= old('status') == 'active' ? 'selected' : '' ?>>Active</option>
-                                                <option value="inactive" <?= old('status') == 'inactive' ? 'selected' : '' ?>>Inactive</option>
+                                                <option value="active" <?= htmlspecialchars($row_branch['status']) == 'active' ? 'selected' : '' ?>>Active</option>
+                                                <option value="inactive" <?= htmlspecialchars($row_branch['status']) == 'inactive' ? 'selected' : '' ?>>Inactive</option>
                                             </select>
                                         </div>
                                         <div class="form-group text-center">
@@ -282,27 +302,8 @@ $stmt_branch->close();
                                 </div>
                             </div>
                         </div>
-
-                        <!-- checkbox + submit berada di luar card 
-    <div class="form-group py-3 text-center">
-      <div class="icheck-material-white d-inline-block me-2">
-        <input type="checkbox" id="agree" checked="" />
-        <label for="agree">I Agree Terms & Conditions</label>
-      </div>
-    </div>-->
-
-                        <div class="form-group text-center">
-                            <button type="submit" class="btn btn-light px-5">
-                                <i class="zmdi zmdi-save"></i> Simpan
-                            </button>
-                            <a href="divisi" class="btn btn-light px-5">
-                                <i class="zmdi zmdi-close"></i> Batal
-                            </a>
-                        </div>
-
                     </form>
                 </div>
-
 
                 <!--start overlay-->
                 <div class="overlay toggle-menu"></div>
@@ -371,6 +372,35 @@ $stmt_branch->close();
 
     <!-- Custom scripts -->
     <script src="assets/js/app-script.js"></script>
+    
+    <script>
+        function loadSelect(url, target, selected = null) {
+            $.get(url, function(data) {
+                $(target).html(data);
+                if (selected) $(target).val(selected);
+            });
+        }
+
+        // initial load (edit mode)
+        loadSelect('ajax/regencies.php?province_id=<?= $row_branch['province_id'] ?>', '#regency_id', <?= $row_branch['regency_id'] ?>);
+        loadSelect('ajax/districts.php?regency_id=<?= $row_branch['regency_id'] ?>', '#district_id', <?= $row_branch['district_id'] ?>);
+        loadSelect('ajax/villages.php?district_id=<?= $row_branch['district_id'] ?>', '#village_id', <?= $row_branch['village_id'] ?>);
+
+        $('#province_id').change(function() {
+            loadSelect('ajax/regencies.php?province_id=' + this.value, '#regency_id');
+            $('#district').html('');
+            $('#village').html('');
+        });
+
+        $('#regency_id').change(function() {
+            loadSelect('ajax/districts.php?regency_id=' + this.value, '#district_id');
+            $('#village').html('');
+        });
+
+        $('#district_id').change(function() {
+            loadSelect('ajax/villages.php?district_id=' + this.value, '#village_id');
+        });
+    </script>
 </body>
 
 </html>

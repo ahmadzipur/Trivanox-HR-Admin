@@ -227,7 +227,7 @@ $result_branch = $stmt_branch->get_result();
                 <div class="card shadow mb-4">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
                         <h5 class="m-0 font-weight-bold">Data Cabang Perusahaan</h5>
-                        <a href="tambah-cabang" class="btn btn-sm btn-light"><i class="zmdi zmdi-plus"></i> <span>Tambah Cabang</span></a>
+                        <a href="tambah-branch" class="btn btn-sm btn-light"><i class="zmdi zmdi-plus"></i> <span>Tambah Cabang</span></a>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">

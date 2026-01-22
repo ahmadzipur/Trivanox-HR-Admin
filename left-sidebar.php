@@ -63,6 +63,12 @@
             <a href="izin-cuti">
                 <i class="zmdi zmdi-check-circle"></i> <span>Pengajuan Izin, Cuti & Sakit</span>
             </a>
+            </li>
+        <li>
+            <a href="data-izin-cuti-saya">
+                <i class="zmdi zmdi-time-restore"></i> <span>Data Izin, Cuti & Sakit Saya</span>
+            </a>
+        </li>
         <li>
             <a href="profile">
                 <i class="zmdi zmdi-account"></i> <span>Profile</span>

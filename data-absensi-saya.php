@@ -409,6 +409,62 @@ function cekJamPulang($jamPulang)
                                         echo "<td>" . hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamPulang) . "</td>";
                                     endfor; ?>
                                 </tr>
+                                <tr>
+                                    <td>Lokasi Masuk</td>
+                                    <?php for ($i = 1; $i <= $jumlahHari; $i++):
+                                        $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                                        $latMasuk = $dataAbsensi[$nama_tanggal]['latitude_masuk'] ?? null;
+                                        $lngMasuk = $dataAbsensi[$nama_tanggal]['longitude_masuk'] ?? null;
+                                        if(!empty($latMasuk)) {
+                                        echo "<td><a target='_blank' class='btn btn-sm btn-outline-primary mt-1'
+                                                    href='https://www.google.com/maps?q=$latMasuk,$lngMasuk'>
+                                                    📍 <small>Lihat</small>
+                                                </a></td>";
+                                        } else {
+                                        echo "<td> </td>";
+                                        }
+                                    endfor; ?>
+                                </tr>
+                                <tr>
+                                    <td>Lokasi Pulang</td>
+                                    <?php for ($i = 1; $i <= $jumlahHari; $i++):
+                                        $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                                        $latPulang = $dataAbsensi[$nama_tanggal]['latitude_pulang'] ?? null;
+                                        $lngPulang = $dataAbsensi[$nama_tanggal]['longitude_pulang'] ?? null;
+                                        if(!empty($latPulang)) {
+                                        echo "<td><a target='_blank' class='btn btn-sm btn-outline-primary mt-1'
+                                                    href='https://www.google.com/maps?q=$latPulang,$lngPulang'>
+                                                    📍 <small>Lihat</small>
+                                                </a></td>";
+                                        } else {
+                                        echo "<td> </td>";
+                                        }
+                                    endfor; ?>
+                                </tr>
+                                <tr>
+                                    <td>Foto Masuk</td>
+                                    <?php for ($i = 1; $i <= $jumlahHari; $i++):
+                                        $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                                        $fotoMasuk = $dataAbsensi[$nama_tanggal]['foto_masuk'] ?? null;
+                                        if(!empty($fotoMasuk)) {
+                                        echo "<td><img class='align-self-start img-fluid mr-3' src='uploads/absensi/$fotoMasuk' alt='logo avatar' style='width: 100px; height: auto;'></td>";
+                                        } else {
+                                        echo "<td> </td>";
+                                        }
+                                    endfor; ?>
+                                </tr>
+                                <tr>
+                                    <td>Foto Pulang</td>
+                                    <?php for ($i = 1; $i <= $jumlahHari; $i++):
+                                        $nama_tanggal = "$nama_tahun-$nama_bulan-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                                        $fotoPulang = $dataAbsensi[$nama_tanggal]['foto_pulang'] ?? null;
+                                        if(!empty($fotoPulang)) {
+                                        echo "<td><img class='align-self-start img-fluid mr-3' src='uploads/absensi/$fotoPulang' alt='logo avatar' style='width: 100px; height: auto;'></td>";
+                                        } else {
+                                        echo "<td> </td>";
+                                        }
+                                    endfor; ?>
+                                </tr>
                             </table>
 
 
@@ -467,6 +523,62 @@ function cekJamPulang($jamPulang)
                                         $jamSelesaiIstirahat = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya]['jam_selesai_istirahat'] ?? '-';
                                         $jamPulang = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya]['jam_pulang'] ?? '-';
                                         echo "<td>" . hitungLembur($jamMasuk, $jamMulaiIstirahat, $jamSelesaiIstirahat, $jamPulang) . "</td>";
+                                    endfor; ?>
+                                </tr>
+                                <tr>
+                                    <td>Lokasi Masuk</td>
+                                    <?php for ($i = 1; $i <= $jumlahHari_bulan_sebelumnya; $i++):
+                                        $nama_tanggal_bulan_sebelumnya = "$nama_tahun_sebelumnya-$nama_bulan_sebelumnya-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                                        $latMasuk = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya]['latitude_masuk'] ?? null;
+                                        $lngMasuk = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya]['longitude_masuk'] ?? null;
+                                        if(!empty($latMasuk)) {
+                                        echo "<td><a target='_blank' class='btn btn-sm btn-outline-primary mt-1'
+                                                    href='https://www.google.com/maps?q=$latMasuk,$lngMasuk'>
+                                                    📍 <small>Lihat</small>
+                                                </a></td>";
+                                        } else {
+                                        echo "<td> </td>";
+                                        }
+                                    endfor; ?>
+                                </tr>
+                                <tr>
+                                    <td>Lokasi Pulang</td>
+                                    <?php for ($i = 1; $i <= $jumlahHari_bulan_sebelumnya; $i++):
+                                        $nama_tanggal_bulan_sebelumnya = "$nama_tahun_sebelumnya-$nama_bulan_sebelumnya-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                                        $latPulang = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya]['latitude_pulang'] ?? null;
+                                        $lngPulang = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya]['longitude_pulang'] ?? null;
+                                        if(!empty($latPulang)) {
+                                        echo "<td><a target='_blank' class='btn btn-sm btn-outline-primary mt-1'
+                                                    href='https://www.google.com/maps?q=$latPulang,$lngPulang'>
+                                                    📍 <small>Lihat</small>
+                                                </a></td>";
+                                        } else {
+                                        echo "<td> </td>";
+                                        }
+                                    endfor; ?>
+                                </tr>
+                                <tr>
+                                    <td>Foto Masuk</td>
+                                    <?php for ($i = 1; $i <= $jumlahHari_bulan_sebelumnya; $i++):
+                                        $nama_tanggal_bulan_sebelumnya = "$nama_tahun_sebelumnya-$nama_bulan_sebelumnya-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                                        $fotoMasuk = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya]['foto_masuk'] ?? null;
+                                        if(!empty($fotoMasuk)) {
+                                        echo "<td><img class='align-self-start img-fluid mr-3' src='uploads/absensi/$fotoMasuk' alt='logo avatar' style='width: 100px; height: auto;'></td>";
+                                        } else {
+                                        echo "<td> </td>";
+                                        }
+                                    endfor; ?>
+                                </tr>
+                                <tr>
+                                    <td>Foto Pulang</td>
+                                    <?php for ($i = 1; $i <= $jumlahHari_bulan_sebelumnya; $i++):
+                                        $nama_tanggal_bulan_sebelumnya = "$nama_tahun_sebelumnya-$nama_bulan_sebelumnya-" . str_pad($i, 2, '0', STR_PAD_LEFT);
+                                        $fotoPulang = $dataAbsensi_bulan_sebelumnya[$nama_tanggal_bulan_sebelumnya]['foto_pulang'] ?? null;
+                                        if(!empty($fotoPulang)) {
+                                        echo "<td><img class='align-self-start img-fluid mr-3' src='uploads/absensi/$fotoPulang' alt='logo avatar' style='width: 100px; height: auto;'></td>";
+                                        } else {
+                                        echo "<td> </td>";
+                                        }
                                     endfor; ?>
                                 </tr>
                             </table>
@@ -607,8 +719,6 @@ function cekJamPulang($jamPulang)
         });
     </script>
     <script src="assets/js/app-script.js"></script>
-
-
 
     <!-- template custom js -->
     <script src="js/main.js"></script>

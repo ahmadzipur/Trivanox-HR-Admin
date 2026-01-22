@@ -217,12 +217,12 @@ $id_company = $sesi_user["id_company"];
           <div class="card-body">
             <div class="card-content p-2">
               <div class="card-title">Form Pengajuan Izin, Cuti & Sakit</div>
-              <form action="" method="POST">
+              <form action="izin-cuti-tambah" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="id_user" id="id_user" value="<?= $id_user; ?>">
                 <div class="form-group">
-                  <label for="jenis">Jenis</label>
-                  <select class="form-control" id="jenis" name="jenis" onchange="ubahKategori()">
-                    <option value="">-- Pilih Jenis --</option>
+                  <label for="jenis">Jenis Pengajuan</label>
+                  <select class="form-control" id="jenis" name="jenis" onchange="ubahKategori()" required>
+                    <option value="">-- Pilih Jenis Pengajuan --</option>
                     <option value="cuti" <?= old('jenis') == 'cuti' ? 'selected' : '' ?>>Cuti</option>
                     <option value="izin" <?= old('jenis') == 'izin' ? 'selected' : '' ?>>Izin</option>
                     <option value="sakit" <?= old('jenis') == 'sakit' ? 'selected' : '' ?>>Sakit</option>
@@ -230,7 +230,7 @@ $id_company = $sesi_user["id_company"];
                 </div>
                 <div class="form-group" id="kategori-group" style="display:none;">
                   <label for="kategori">Kategori</label>
-                  <select class="form-control" id="kategori" name="kategori" onchange="tampilListSakit()">
+                  <select class="form-control" id="kategori" name="kategori" onchange="tampilListSakit()" required>
                     <option value="">-- Pilih Kategori --</option>
                     <option value="Cuti Bulanan" <?= old('kategori') == 'Cuti Bulanan' ? 'selected' : '' ?>>Cuti Bulanan</option>
                     <option value="Cuti Tahunan" <?= old('kategori') == 'Cuti Tahunan' ? 'selected' : '' ?>>Cuti Tahunan</option>
@@ -255,16 +255,16 @@ $id_company = $sesi_user["id_company"];
                 </div>
                 <div class="form-group">
                   <label for="tanggal_mulai">Tanggal Mulai</label>
-                  <input type="date" style="width:170px" class="form-control" id="tanggal_mulai" name="tanggal_mulai" value="<?= old('tanggal_mulai') ?>" onchange="hitungHari()">
+                  <input type="date" style="width:170px" class="form-control" id="tanggal_mulai" name="tanggal_mulai" value="<?= old('tanggal_mulai') ?>" onchange="hitungHari()" required>
                 </div>
                 <div class="form-group">
                   <label for="tanggal_selesai">Tanggal Selesai</label>
-                  <input type="date" style="width:170px" class="form-control" id="tanggal_selesai" name="tanggal_selesai" value="<?= old('tanggal_selesai') ?>" onchange="hitungHari()">
+                  <input type="date" style="width:170px" class="form-control" id="tanggal_selesai" name="tanggal_selesai" value="<?= old('tanggal_selesai') ?>" onchange="hitungHari()" required>
                 </div>
                 <!-- Half Day -->
                 <div class="form-group">
                   <div class="icheck-material-white d-inline-block me-2">
-                    <input type="checkbox" id="is_half_day" name="is_half_day" value="1" />
+                    <input type="checkbox" id="is_half_day" name="is_half_day" value="<?= old('is_half_day') ?>" />
                     <label for="is_half_day">Setengah Hari (Half Day)</label>
                   </div>
                 </div>
@@ -275,10 +275,10 @@ $id_company = $sesi_user["id_company"];
                 <div class="form-group">
                   <label for="alasan">Alasan</label>
                   <textarea class="form-control" id="alasan" name="alasan" rows="3"
-                    placeholder="Alasan Lengkap"><?= old('alasan') ?></textarea>
+                    placeholder="Alasan Lengkap" required><?= old('alasan') ?></textarea>
                 </div>
                 <div class="form-group">
-                  <label>File Pendukung</label>
+                  <label for="file_pendukung">File Pendukung</label>
                   <input type="file" class="form-control mb-2" id="file_pendukung" name="file_pendukung">
                 </div>
 
